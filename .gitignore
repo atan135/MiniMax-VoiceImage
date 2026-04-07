@@ -7,6 +7,9 @@ node_modules/
 # Output files
 output/
 
+# Build output
+client/dist/
+
 # OS files
 .DS_Store
 Thumbs.db
