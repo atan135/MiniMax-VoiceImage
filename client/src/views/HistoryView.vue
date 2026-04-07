@@ -27,7 +27,7 @@
       <el-table-column label="预览" width="100">
         <template #default="{ row }">
           <div v-if="row.status === 'success' && row.type === 'image'" class="thumbnail-cell">
-            <img :src="row.file_path" alt="preview" class="thumbnail" @click.stop="openLightbox(row.file_path)" />
+            <img :src="getFileUrl(row.file_path)" alt="preview" class="thumbnail" @click.stop="openLightbox(getFileUrl(row.file_path))" />
           </div>
           <div v-else-if="row.status === 'success' && row.type === 'voice'" class="audio-icon">
             🔊
@@ -185,9 +185,9 @@ const handleRowClick = async (row) => {
 
       if (selectedRecord.value.status === 'success' && selectedRecord.value.file_path) {
         if (selectedRecord.value.type === 'voice') {
-          audioSrc.value = '/' + selectedRecord.value.file_path
+          audioSrc.value = getFileUrl(selectedRecord.value.file_path)
         } else if (selectedRecord.value.type === 'image') {
-          imageSrc.value = selectedRecord.value.file_path
+          imageSrc.value = getFileUrl(selectedRecord.value.file_path)
         }
       }
 
@@ -201,6 +201,13 @@ const handleRowClick = async (row) => {
 const openLightbox = (src) => {
   lightboxSrc.value = src
   lightboxVisible.value = true
+}
+
+// 转换文件路径为URL
+const getFileUrl = (filePath) => {
+  if (!filePath) return ''
+  if (filePath.startsWith('http')) return filePath
+  return '/' + filePath.replace(/\\/g, '/')
 }
 
 onMounted(() => {

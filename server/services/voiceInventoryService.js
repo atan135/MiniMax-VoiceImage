@@ -1,6 +1,9 @@
 import { getPool } from "../utils/db.js";
 import { apiLogger } from "../utils/logger.js";
-import { getAllVoices as fetchVoicesFromAPI } from "./voiceService.js";
+import {
+  getAllVoices as fetchVoicesFromAPI,
+  LANGUAGE_BOOST_LIST,
+} from "./voiceService.js";
 import { deleteVoice as deleteVoiceFromAPI } from "./voiceService.js";
 
 /**
@@ -14,6 +17,7 @@ export async function initVoiceTable() {
       voice_name VARCHAR(255),
       description TEXT,
       source ENUM('system', 'voice_cloning', 'voice_generation') NOT NULL,
+      language VARCHAR(50),
       created_time VARCHAR(50),
       synced_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       INDEX idx_source (source)
@@ -42,15 +46,18 @@ export async function refreshVoicesFromAPI() {
     const conn = await pool.getConnection();
 
     // 清空现有音色（只清空克隆和生成的，系统音色保留）
-    await conn.query("DELETE FROM voice_inventory WHERE source IN ('voice_cloning', 'voice_generation')");
+    await conn.query(
+      "DELETE FROM voice_inventory WHERE source IN ('voice_cloning', 'voice_generation')",
+    );
 
     let inserted = 0;
 
-    // 插入系统音色
+    // 插入系统音色（使用 ON DUPLICATE KEY UPDATE 已有记录则更新 language）
     for (const v of apiData.systemVoices || []) {
+      const language = matchLanguage(v.voiceId);
       await conn.execute(
-        `INSERT IGNORE INTO voice_inventory (voice_id, voice_name, description, source) VALUES (?, ?, ?, 'system')`,
-        [v.voiceId, v.voiceName, JSON.stringify(v.description || [])]
+        `INSERT INTO voice_inventory (voice_id, voice_name, description, source, language) VALUES (?, ?, ?, 'system', ?) ON DUPLICATE KEY UPDATE language = VALUES(language), voice_name = VALUES(voice_name), description = VALUES(description)`,
+        [v.voiceId, v.voiceName, JSON.stringify(v.description || []), language],
       );
       inserted++;
     }
@@ -59,7 +66,12 @@ export async function refreshVoicesFromAPI() {
     for (const v of apiData.cloningVoices || []) {
       await conn.execute(
         `INSERT IGNORE INTO voice_inventory (voice_id, voice_name, description, source, created_time) VALUES (?, ?, ?, 'voice_cloning', ?)`,
-        [v.voiceId, v.voiceName, JSON.stringify(v.description || []), v.createdTime]
+        [
+          v.voiceId,
+          v.voiceName,
+          JSON.stringify(v.description || []),
+          v.createdTime,
+        ],
       );
       inserted++;
     }
@@ -68,7 +80,12 @@ export async function refreshVoicesFromAPI() {
     for (const v of apiData.generationVoices || []) {
       await conn.execute(
         `INSERT IGNORE INTO voice_inventory (voice_id, voice_name, description, source, created_time) VALUES (?, ?, ?, 'voice_generation', ?)`,
-        [v.voiceId, v.voiceName, JSON.stringify(v.description || []), v.createdTime]
+        [
+          v.voiceId,
+          v.voiceName,
+          JSON.stringify(v.description || []),
+          v.createdTime,
+        ],
       );
       inserted++;
     }
@@ -84,19 +101,39 @@ export async function refreshVoicesFromAPI() {
 }
 
 /**
+ * 根据LANGUAGE_BOOST_LIST匹配voice_id前缀确定语言
+ */
+function matchLanguage(voiceId) {
+  if (!voiceId) return "Other";
+
+  const voiceIdLower = voiceId.toLowerCase();
+
+  // 从LANGUAGE_BOOST_LIST中查找匹配的语言（按前缀匹配，大小写不敏感）
+  for (const lang of LANGUAGE_BOOST_LIST) {
+    if (lang === "auto") continue;
+    if (voiceIdLower.startsWith(lang.toLowerCase())) {
+      return lang;
+    }
+  }
+
+  return "Other";
+}
+
+/**
  * 获取所有音色（从数据库）
  */
 export async function getVoicesFromDB() {
   try {
     const [rows] = await getPool().execute(
-      "SELECT voice_id, voice_name, description, source, created_time FROM voice_inventory ORDER BY source, voice_id"
+      "SELECT voice_id, voice_name, description, source, language, created_time FROM voice_inventory ORDER BY source, language, voice_id",
     );
-    return rows.map(row => ({
+    return rows.map((row) => ({
       voiceId: row.voice_id,
       voiceName: row.voice_name,
-      description: JSON.parse(row.description || '[]'),
+      description: JSON.parse(row.description || "[]"),
       source: row.source,
-      createdTime: row.created_time
+      language: row.language,
+      createdTime: row.created_time,
     }));
   } catch (error) {
     apiLogger.error(`[VoiceInventory] 获取音色库失败: ${error.message}`);
@@ -109,19 +146,23 @@ export async function getVoicesFromDB() {
  */
 export async function removeVoice(voiceId, source) {
   // 如果是克隆或生成音色，先调用API删除
-  if (source === 'voice_cloning' || source === 'voice_generation') {
+  if (source === "voice_cloning" || source === "voice_generation") {
     try {
       await deleteVoiceFromAPI(voiceId, source);
       apiLogger.info(`[VoiceInventory] API删除音色成功: ${voiceId}`);
     } catch (error) {
       // API删除失败不影响本地删除
-      apiLogger.warn(`[VoiceInventory] API删除音色失败（已从本地删除）: ${voiceId}, ${error.message}`);
+      apiLogger.warn(
+        `[VoiceInventory] API删除音色失败（已从本地删除）: ${voiceId}, ${error.message}`,
+      );
     }
   }
 
   // 从本地数据库删除
   try {
-    await getPool().execute("DELETE FROM voice_inventory WHERE voice_id = ?", [voiceId]);
+    await getPool().execute("DELETE FROM voice_inventory WHERE voice_id = ?", [
+      voiceId,
+    ]);
     apiLogger.info(`[VoiceInventory] 本地删除音色成功: ${voiceId}`);
     return { success: true };
   } catch (error) {

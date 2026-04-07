@@ -209,3 +209,101 @@ integer<int64>
 base_resp.status_msg
 string
 状态详情
+
+
+
+
+
+音色设计
+音色设计
+
+复制页面
+
+使用本接口，输入文本内容，进行音色设计。
+
+POST
+/
+v1
+/
+voice_design
+
+试一试
+授权
+​
+Authorization
+stringheader必填
+HTTP: Bearer Auth
+
+Security Scheme Type: http
+HTTP Authorization Scheme: Bearer API_key，用于验证账户信息，可在 账户管理>接口密钥 中查看。
+请求头
+​
+Content-Type
+enum<string>默认值:application/json必填
+请求体的媒介类型，请设置为 application/json，确保请求数据的格式为 JSON
+
+可用选项: application/json 
+请求体
+application/json
+​
+prompt
+string必填
+音色描述。
+
+​
+preview_text
+string必填
+试听音频文本。
+注：试听音频的合成将收取 2 元/万字符的费用
+
+Maximum string length: 500
+​
+voice_id
+string
+自定义生成音色的 voice_id。当不传入此参数时，将自动生成并返回一个唯一的 voice_id
+
+​
+aigc_watermark
+boolean
+是否在合成试听音频的末尾添加音频节奏标识，默认值为 False
+
+响应
+200 - application/json
+​
+voice_id
+string
+生成的音色 ID，可用于语音合成
+
+​
+trial_audio
+string
+使用生成的音色合成的试听音频，以 hex 编码形式返回
+
+​
+base_resp
+object
+状态码和状态详情
+
+Hide child attributes
+
+​
+base_resp.status_code
+integer<int64>
+状态码。
+
+0: 请求结果正常
+1000: 未知错误
+1001: 超时
+1002: 触发 RPM 限流
+1004: 鉴权失败
+1008: 余额不足
+1013: 服务内部错误
+1027: 输出内容错误
+1039: 触发 TPM 限流
+2013: 输入格式信息不正常
+更多内容可查看 错误码查询列表 了解详情
+
+​
+base_resp.status_msg
+string
+状态详情

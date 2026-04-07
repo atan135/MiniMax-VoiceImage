@@ -14,7 +14,8 @@
       "Bash(mysql -u root -patan135 --default-character-set=utf8mb4 -e \"SELECT prompt FROM minimax.generation_history ORDER BY id DESC LIMIT 1;\")",
       "Bash(mysql -u root -patan135 --default-character-set=utf8mb4 -e \"TRUNCATE TABLE minimax.generation_history;\")",
       "Bash(mysql:*)",
-      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''Languages:'''', len\\(d.get\\(''''languages'''',[]\\)\\), ''''Built-in voices:'''', len\\(d.get\\(''''builtInVoices'''',[]\\)\\), ''''Custom voices:'''', len\\(d.get\\(''''customVoices'''',[]\\)\\)\\)\")"
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''Languages:'''', len\\(d.get\\(''''languages'''',[]\\)\\), ''''Built-in voices:'''', len\\(d.get\\(''''builtInVoices'''',[]\\)\\), ''''Custom voices:'''', len\\(d.get\\(''''customVoices'''',[]\\)\\)\\)\")",
+      "Bash(taskkill //F //IM node.exe)"
     ]
   }
 }

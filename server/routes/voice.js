@@ -1,5 +1,5 @@
 import express from "express";
-import { textToSpeech, getAllVoices, deleteVoice, BITRATE_LIST, EMOTION_LIST, LANGUAGE_BOOST_LIST, SAMPLE_RATE_LIST, AUDIO_FORMAT_LIST } from "../services/voiceService.js";
+import { textToSpeech, getAllVoices, deleteVoice, designVoice, BITRATE_LIST, EMOTION_LIST, LANGUAGE_BOOST_LIST, SAMPLE_RATE_LIST, AUDIO_FORMAT_LIST } from "../services/voiceService.js";
 import { refreshVoicesFromAPI, getVoicesFromDB, removeVoice } from "../services/voiceInventoryService.js";
 import { addRecord } from "../services/historyService.js";
 import { apiLogger, maskSensitiveData } from "../utils/logger.js";
@@ -43,6 +43,23 @@ router.post("/refresh", async (req, res) => {
     res.json({ success: true, data: result });
   } catch (error) {
     apiLogger.error(`刷新音色列表失败: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 音色设计
+router.post("/design", async (req, res) => {
+  const startTime = Date.now();
+  apiLogger.info(`[Voice Design] 请求参数: ${JSON.stringify(maskSensitiveData(req.body))}`);
+
+  try {
+    const result = await designVoice(req.body);
+    const duration = Date.now() - startTime;
+    apiLogger.info(`[Voice Design] 成功 | 耗时: ${duration}ms | voiceId: ${result.voiceId}`);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    apiLogger.error(`[Voice Design] 失败 | 耗时: ${duration}ms | 错误: ${error.message}`);
     res.status(500).json({ success: false, error: error.message });
   }
 });

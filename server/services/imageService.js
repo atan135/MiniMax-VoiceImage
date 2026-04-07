@@ -1,8 +1,11 @@
 import axios from "axios";
+import fs from "fs";
+import path from "path";
 import "dotenv/config";
 
 const API_KEY = process.env.API_KEY;
 const DEFAULT_MODEL = "image-01";
+const IMAGE_OUTPUT_PATH = process.env.IMAGE_OUTPUT_PATH || "output/image";
 
 // ============================================================
 // 参数选项
@@ -11,6 +14,60 @@ const MODEL_LIST = ["image-01", "image-01-live"];
 const ASPECT_RATIO_LIST = ["1:1", "16:9", "4:3", "3:2", "2:3", "3:4", "9:16", "21:9"];
 const RESPONSE_FORMAT_LIST = ["url", "base64"];
 const STYLE_LIST = ["realness", "hd", "anime", "illustration", "3d"];
+
+// ============================================================
+// 下载并保存图片
+// ============================================================
+async function downloadAndSaveImage(url, index) {
+  const response = await axios.get(url, {
+    responseType: "arraybuffer",
+    timeout: 60000,
+  });
+
+  // 从URL中提取扩展名
+  let ext = "png";
+  try {
+    const urlPath = new URL(url).pathname;
+    const match = urlPath.match(/\.([^.]+)$/);
+    if (match) ext = match[1];
+  } catch {}
+
+  const filename = `image_${Date.now()}_${index}.${ext}`;
+  const savePath = path.join(IMAGE_OUTPUT_PATH, filename);
+  const dir = path.dirname(savePath);
+
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+  fs.writeFileSync(savePath, Buffer.from(response.data));
+  console.log(`图片已保存: ${savePath}`);
+
+  return { filePath: savePath, fileSize: fs.statSync(savePath).size };
+}
+
+function saveBase64Image(base64Data, index) {
+  // base64 可能包含 data:image/png;base64, 前缀
+  const matches = base64Data.match(/^data:([^;]+);base64,(.+)$/);
+  let ext = "png";
+  let data = base64Data;
+
+  if (matches) {
+    const mimeType = matches[1];
+    ext = mimeType.split("/")[1] || "png";
+    data = matches[2];
+  }
+
+  const filename = `image_${Date.now()}_${index}.${ext}`;
+  const savePath = path.join(IMAGE_OUTPUT_PATH, filename);
+  const dir = path.dirname(savePath);
+
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+  const buffer = Buffer.from(data, "base64");
+  fs.writeFileSync(savePath, buffer);
+  console.log(`图片已保存: ${savePath}`);
+
+  return { filePath: savePath, fileSize: buffer.length };
+}
 
 // ============================================================
 // 图片生成主函数
@@ -83,12 +140,30 @@ export async function textToImage(params) {
     id: resp.id,
     success_count: resp.metadata?.success_count || 0,
     failed_count: resp.metadata?.failed_count || 0,
+    images: [],
   };
 
+  // 下载并保存图片
   if (response_format === "url") {
-    result.image_urls = resp.data?.image_urls || [];
+    const urls = resp.data?.image_urls || [];
+    for (let i = 0; i < urls.length; i++) {
+      try {
+        const saved = await downloadAndSaveImage(urls[i], i);
+        result.images.push(saved);
+      } catch (err) {
+        console.error(`下载图片失败: ${urls[i]}, 错误: ${err.message}`);
+      }
+    }
   } else {
-    result.image_base64 = resp.data?.image_base64 || [];
+    const base64List = resp.data?.image_base64 || [];
+    for (let i = 0; i < base64List.length; i++) {
+      try {
+        const saved = saveBase64Image(base64List[i], i);
+        result.images.push(saved);
+      } catch (err) {
+        console.error(`保存base64图片失败: ${err.message}`);
+      }
+    }
   }
 
   return result;

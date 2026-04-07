@@ -159,13 +159,35 @@ watch(() => form.selectedLanguage, () => {
 onMounted(async () => {
   try {
     const res = await getVoiceOptions()
-    builtInVoices.value = res.data.builtInVoices || []
-    customVoices.value = res.data.customVoices || []
-    languages.value = res.data.languages || []
-    options.bitrateList = res.data.bitrateList || options.bitrateList
-    options.emotionList = res.data.emotionList || options.emotionList
-    options.sampleRateList = res.data.sampleRateList || options.sampleRateList
-    options.audioFormatList = res.data.audioFormatList || options.audioFormatList
+    const data = res.data.data || {}
+
+    // 转换系统音色为前端格式
+    const allBuiltIn = (data.systemVoices || []).map(v => ({
+      id: v.voiceId,
+      name: v.voiceName,
+      language: v.language || '其他'
+    }))
+
+    // 提取语言列表
+    const langSet = new Set()
+    allBuiltIn.forEach(v => {
+      if (v.language) langSet.add(v.language)
+    })
+    languages.value = Array.from(langSet).sort()
+
+    // 自定义音色 = 克隆音色 + 生成音色
+    const allCustom = [
+      ...(data.cloningVoices || []).map(v => ({ id: v.voiceId, name: v.voiceName })),
+      ...(data.generationVoices || []).map(v => ({ id: v.voiceId, name: v.voiceName }))
+    ]
+
+    builtInVoices.value = allBuiltIn
+    customVoices.value = allCustom
+
+    options.bitrateList = data.bitrateList || options.bitrateList
+    options.emotionList = data.emotionList || options.emotionList
+    options.sampleRateList = data.sampleRateList || options.sampleRateList
+    options.audioFormatList = data.audioFormatList || options.audioFormatList
 
     // 默认选择第一个音色
     if (builtInVoices.value.length > 0) {

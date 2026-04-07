@@ -27,8 +27,9 @@ router.post("/", async (req, res) => {
     const result = await textToImage(req.body);
     const duration = Date.now() - startTime;
 
-    // 取第一个图片URL作为记录
-    const filePath = result.image_urls?.[0] || null;
+    // 取第一个图片路径作为记录
+    const filePath = result.images?.[0]?.filePath || null;
+    const fileSize = result.images?.[0]?.fileSize || 0;
 
     // 记录到数据库
     await addRecord(
@@ -36,12 +37,12 @@ router.post("/", async (req, res) => {
       req.body.prompt,
       maskedBody,
       filePath,
-      0,
+      fileSize,
       "success"
     );
 
     apiLogger.info(`[Image] 成功 | 耗时: ${duration}ms | ID: ${result.id} | 成功: ${result.success_count} | 失败: ${result.failed_count}`);
-    apiLogger.info(`[Image] 图片URLs: ${JSON.stringify(result.image_urls || result.image_base64?.map(() => "[base64 data]"))}`);
+    apiLogger.info(`[Image] 本地路径: ${JSON.stringify(result.images?.map(i => i.filePath))}`);
 
     res.json({ success: true, data: result });
   } catch (error) {

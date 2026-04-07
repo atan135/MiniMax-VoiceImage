@@ -88,6 +88,51 @@ export async function getAllVoices() {
 }
 
 // ============================================================
+// 音色设计
+// ============================================================
+export async function designVoice(params) {
+  const { prompt, preview_text, voice_id, aigc_watermark } = params;
+
+  if (!API_KEY) throw new Error("请先在 .env 中配置 API_KEY");
+  if (!prompt) throw new Error("音色描述不能为空");
+  if (!preview_text) throw new Error("试听文本不能为空");
+
+  const payload = {
+    prompt,
+    preview_text,
+  };
+  if (voice_id) payload.voice_id = voice_id;
+  if (aigc_watermark) payload.aigc_watermark = aigc_watermark;
+
+  try {
+    const response = await axios.post(
+      "https://api.minimaxi.com/v1/voice_design",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 120000,
+      }
+    );
+
+    const resp = response.data;
+
+    if (resp.base_resp && resp.base_resp.status_code !== 0) {
+      throw new Error(`API 错误: ${resp.base_resp.status_msg}`);
+    }
+
+    return {
+      voiceId: resp.voice_id,
+      trialAudio: resp.trial_audio,
+    };
+  } catch (error) {
+    throw new Error(`音色设计失败: ${error.message}`);
+  }
+}
+
+// ============================================================
 // 删除音色
 // ============================================================
 export async function deleteVoice(voiceId, voiceType) {

@@ -60,8 +60,8 @@
       <p>成功: {{ result.success_count }} | 失败: {{ result.failed_count }}</p>
       <p v-if="result.id">任务ID: {{ result.id }}</p>
       <div class="image-grid">
-        <div v-for="(url, index) in result.image_urls" :key="index" class="image-item">
-          <img :src="url" alt="Generated image" @click="openLightbox(url)" />
+        <div v-for="(img, index) in result.images" :key="index" class="image-item">
+          <img :src="getImageUrl(img.filePath)" :alt="'Generated image ' + index" @click="openLightbox(getImageUrl(img.filePath))" />
         </div>
       </div>
     </div>
@@ -139,6 +139,15 @@ const handleGenerate = async () => {
 const openLightbox = (src) => {
   lightboxSrc.value = src
   lightboxVisible.value = true
+}
+
+// 转换本地文件路径为URL
+const getImageUrl = (filePath) => {
+  if (!filePath) return ''
+  // 如果是完整URL直接返回
+  if (filePath.startsWith('http')) return filePath
+  // 否则转换为 /output 开头的URL
+  return filePath.replace(/\\/g, '/')
 }
 </script>
 
