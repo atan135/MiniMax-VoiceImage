@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:platform.minimaxi.com)",
+      "WebSearch",
+      "Bash(npm install:*)",
+      "Bash(node:*)",
+      "Bash(curl -s --request POST --url https://api.minimaxi.com/v1/t2a_v2 --header 'Authorization: Bearer sk-cp-FyX7Cu3CuU6NobYnzsFX9QJUCdii_wMQiNeBpim_h8l7cN8a_LAJHRJTdAeasTA7embYHQ4qm8bNTNA80CYvd2dp1_4Q__ocDeW27yBlrUTD5DFtDyTnFQY' --header 'Content-Type: application/json' --data '{\"\"\"\"model\"\"\"\":\"\"\"\"speech-2.8-hd\"\"\"\",\"\"\"\"text\"\"\"\":\"\"\"\"测试\"\"\"\",\"\"\"\"stream\"\"\"\":false,\"\"\"\"voice_setting\"\"\"\":{\"\"\"\"voice_id\"\"\"\":\"\"\"\"female-tianmei\"\"\"\",\"\"\"\"speed\"\"\"\":1,\"\"\"\"vol\"\"\"\":1,\"\"\"\"pitch\"\"\"\":0,\"\"\"\"emotion\"\"\"\":\"\"\"\"happy\"\"\"\"},\"\"\"\"audio_setting\"\"\"\":{\"\"\"\"sample_rate\"\"\"\":32000,\"\"\"\"bitrate\"\"\"\":128000,\"\"\"\"format\"\"\"\":\"\"\"\"mp3\"\"\"\",\"\"\"\"channel\"\"\"\":1},\"\"\"\"subtitle_enable\"\"\"\":false}')",
+      "Bash(curl -s -X POST http://localhost:3000/api/voice -H \"Content-Type: application/json\" -d '{\"\"\"\"text\"\"\"\":\"\"\"\"你好世界\"\"\"\",\"\"\"\"voiceId\"\"\"\":\"\"\"\"moss_audio_ce44fc67-7ce3-11f0-8de5-96e35d26fb85\"\"\"\"}')",
+      "Bash(curl:*)",
+      "Bash(npm run:*)",
+      "Bash(netstat -ano)",
+      "Bash(mysql -u root -patan135 --default-character-set=utf8mb4 -e \"INSERT INTO minimax.generation_history \\(type, prompt, params, status\\) VALUES \\(''voice'', ''你好世界'', ''{}'', ''success''\\);\")",
+      "Bash(mysql -u root -patan135 --default-character-set=utf8mb4 -e \"SELECT prompt FROM minimax.generation_history ORDER BY id DESC LIMIT 1;\")",
+      "Bash(mysql -u root -patan135 --default-character-set=utf8mb4 -e \"TRUNCATE TABLE minimax.generation_history;\")",
+      "Bash(mysql:*)"
+    ]
+  }
+}

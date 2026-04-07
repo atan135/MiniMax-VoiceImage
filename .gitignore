@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Environment variables (keep .env.example)
+.env
+
+# Output files
+output/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
