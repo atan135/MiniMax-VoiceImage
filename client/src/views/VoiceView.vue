@@ -12,14 +12,38 @@
       </el-form-item>
 
       <el-form-item label="音色">
-        <el-select v-model="form.voiceId" placeholder="请选择音色">
-          <el-option
-            v-for="voice in options.voiceList"
-            :key="voice.id"
-            :label="`${voice.name} - ${voice.desc}`"
-            :value="voice.id"
-          />
-        </el-select>
+        <el-tabs v-model="voiceTab" class="voice-tabs">
+          <el-tab-pane label="内置音色" name="built-in">
+            <div class="voice-selector">
+              <el-select v-model="form.selectedLanguage" placeholder="选择语言" clearable style="margin-bottom: 10px; width: 100%">
+                <el-option v-for="lang in languages" :key="lang" :label="lang" :value="lang" />
+              </el-select>
+              <el-select v-model="form.voiceId" placeholder="选择音色" style="width: 100%">
+                <el-option
+                  v-for="voice in filteredBuiltInVoices"
+                  :key="voice.id"
+                  :label="voice.name"
+                  :value="voice.id"
+                />
+              </el-select>
+            </div>
+          </el-tab-pane>
+          <el-tab-pane label="自定义音色" name="custom">
+            <div class="voice-selector">
+              <el-select v-model="form.voiceId" placeholder="选择自定义音色" style="width: 100%">
+                <el-option
+                  v-for="voice in customVoices"
+                  :key="voice.id"
+                  :label="voice.name"
+                  :value="voice.id"
+                />
+              </el-select>
+              <div v-if="customVoices.length === 0" class="custom-empty">
+                暂无自定义音色
+              </div>
+            </div>
+          </el-tab-pane>
+        </el-tabs>
       </el-form-item>
 
       <el-row :gutter="20">
@@ -86,13 +110,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { getVoiceOptions, generateVoice } from '../api'
 import { ElMessage } from 'element-plus'
 
 const form = reactive({
   text: '',
   voiceId: '',
+  selectedLanguage: '',
   speed: 1,
   vol: 1,
   pitch: 0,
@@ -102,29 +127,50 @@ const form = reactive({
   emotion: 'fluent'
 })
 
+const voiceTab = ref('built-in')
+
 const options = reactive({
-  voiceList: [],
   bitrateList: [64000, 128000, 192000, 256000, 320000],
   emotionList: ['happy', 'sad', 'angry', 'fearful', 'disgusted', 'surprised', 'calm', 'fluent', 'whisper'],
   sampleRateList: [16000, 24000, 32000, 48000],
   audioFormatList: ['mp3', 'wav', 'flac']
 })
 
+const builtInVoices = ref([])
+const customVoices = ref([])
+const languages = ref([])
 const loading = ref(false)
 const result = ref(null)
 const audioUrl = ref('')
 const error = ref('')
 
+const filteredBuiltInVoices = computed(() => {
+  if (!form.selectedLanguage) {
+    return builtInVoices.value
+  }
+  return builtInVoices.value.filter(v => v.language === form.selectedLanguage)
+})
+
+// 切换语言时清空音色选择
+watch(() => form.selectedLanguage, () => {
+  form.voiceId = ''
+})
+
 onMounted(async () => {
   try {
     const res = await getVoiceOptions()
-    options.voiceList = res.data.voiceList
-    options.bitrateList = res.data.bitrateList
-    options.emotionList = res.data.emotionList
-    options.sampleRateList = res.data.sampleRateList
-    options.audioFormatList = res.data.audioFormatList
-    if (options.voiceList.length > 0) {
-      form.voiceId = options.voiceList[0].id
+    builtInVoices.value = res.data.builtInVoices || []
+    customVoices.value = res.data.customVoices || []
+    languages.value = res.data.languages || []
+    options.bitrateList = res.data.bitrateList || options.bitrateList
+    options.emotionList = res.data.emotionList || options.emotionList
+    options.sampleRateList = res.data.sampleRateList || options.sampleRateList
+    options.audioFormatList = res.data.audioFormatList || options.audioFormatList
+
+    // 默认选择第一个音色
+    if (builtInVoices.value.length > 0) {
+      form.voiceId = builtInVoices.value[0].id
+      form.selectedLanguage = builtInVoices.value[0].language
     }
   } catch (e) {
     ElMessage.error('获取选项失败')
@@ -143,12 +189,24 @@ const handleGenerate = async () => {
     ElMessage.warning('请输入文本内容')
     return
   }
+  if (!form.voiceId) {
+    ElMessage.warning('请选择音色')
+    return
+  }
   loading.value = true
   error.value = ''
   result.value = null
   try {
     const res = await generateVoice({
-      ...form,
+      text: form.text,
+      voiceId: form.voiceId,
+      speed: form.speed,
+      vol: form.vol,
+      pitch: form.pitch,
+      bitrate: form.bitrate,
+      sampleRate: form.sampleRate,
+      audioFormat: form.audioFormat,
+      emotion: form.emotion,
       outputFormat: 'hex'
     })
     if (res.data.success) {
@@ -182,6 +240,17 @@ const handleGenerate = async () => {
 }
 .voice-form {
   margin-top: 20px;
+}
+.voice-tabs {
+  width: 100%;
+}
+.voice-selector {
+  padding: 10px 0;
+}
+.custom-empty {
+  color: #999;
+  text-align: center;
+  padding: 20px;
 }
 .result {
   margin-top: 24px;

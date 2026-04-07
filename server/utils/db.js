@@ -1,5 +1,6 @@
 import mysql from "mysql2/promise";
 import { appLogger } from "./logger.js";
+import { initVoiceTable } from "../services/voiceInventoryService.js";
 
 const dbConfig = {
   host: process.env.DB_HOST || "localhost",
@@ -65,6 +66,9 @@ async function initDatabase() {
     await conn.query(createTableSQL);
     conn.release();
     appLogger.info("数据库表 generation_history 已就绪");
+
+    // 初始化音色库表
+    await initVoiceTable();
   } catch (error) {
     appLogger.error(`数据库初始化失败: ${error.message}`);
     throw error;

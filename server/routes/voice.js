@@ -1,21 +1,66 @@
 import express from "express";
-import { textToSpeech, VOICE_LIST, BITRATE_LIST, EMOTION_LIST, LANGUAGE_BOOST_LIST, SAMPLE_RATE_LIST, AUDIO_FORMAT_LIST } from "../services/voiceService.js";
+import { textToSpeech, getAllVoices, deleteVoice, BITRATE_LIST, EMOTION_LIST, LANGUAGE_BOOST_LIST, SAMPLE_RATE_LIST, AUDIO_FORMAT_LIST } from "../services/voiceService.js";
+import { refreshVoicesFromAPI, getVoicesFromDB, removeVoice } from "../services/voiceInventoryService.js";
 import { addRecord } from "../services/historyService.js";
 import { apiLogger, maskSensitiveData } from "../utils/logger.js";
 
 const router = express.Router();
 
-// 获取语音配置选项
-router.get("/options", (req, res) => {
-  apiLogger.info("获取语音配置选项");
-  res.json({
-    voiceList: VOICE_LIST,
-    bitrateList: BITRATE_LIST,
-    emotionList: EMOTION_LIST,
-    languageBoostList: LANGUAGE_BOOST_LIST,
-    sampleRateList: SAMPLE_RATE_LIST,
-    audioFormatList: AUDIO_FORMAT_LIST,
-  });
+// 获取音色列表（从数据库）
+router.get("/options", async (req, res) => {
+  apiLogger.info("获取音色列表");
+  try {
+    const voices = await getVoicesFromDB();
+
+    const systemVoices = voices.filter(v => v.source === 'system');
+    const cloningVoices = voices.filter(v => v.source === 'voice_cloning');
+    const generationVoices = voices.filter(v => v.source === 'voice_generation');
+
+    res.json({
+      success: true,
+      data: {
+        systemVoices,
+        cloningVoices,
+        generationVoices,
+        bitrateList: BITRATE_LIST,
+        emotionList: EMOTION_LIST,
+        languageBoostList: LANGUAGE_BOOST_LIST,
+        sampleRateList: SAMPLE_RATE_LIST,
+        audioFormatList: AUDIO_FORMAT_LIST,
+      }
+    });
+  } catch (error) {
+    apiLogger.error(`获取音色列表失败: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 刷新音色列表（从API获取并存入数据库）
+router.post("/refresh", async (req, res) => {
+  apiLogger.info("刷新音色列表");
+  try {
+    const result = await refreshVoicesFromAPI();
+    res.json({ success: true, data: result });
+  } catch (error) {
+    apiLogger.error(`刷新音色列表失败: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 删除音色
+router.delete("/:voiceId", async (req, res) => {
+  const { voiceId } = req.params;
+  const { source } = req.body;
+
+  apiLogger.info(`删除音色: ${voiceId}, 来源: ${source}`);
+
+  try {
+    const result = await removeVoice(voiceId, source);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    apiLogger.error(`删除音色失败: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // 生成语音

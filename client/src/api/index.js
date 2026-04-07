@@ -5,7 +5,9 @@ const api = axios.create({
 })
 
 export const getVoiceOptions = () => api.get('/voice/options')
+export const refreshVoiceOptions = () => api.post('/voice/refresh')
 export const generateVoice = (data) => api.post('/voice', data)
+export const deleteVoice = (voiceId, voiceType) => api.delete(`/voice/${voiceId}`, { data: { voice_type: voiceType } })
 
 export const getImageOptions = () => api.get('/image/options')
 export const generateImage = (data) => api.post('/image', data)
