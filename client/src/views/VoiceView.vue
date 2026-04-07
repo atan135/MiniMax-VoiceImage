@@ -156,6 +156,11 @@ watch(() => form.selectedLanguage, () => {
   form.voiceId = ''
 })
 
+// 切换Tab时清空音色选择
+watch(() => voiceTab.value, () => {
+  form.voiceId = ''
+})
+
 onMounted(async () => {
   try {
     const res = await getVoiceOptions()
