@@ -8,18 +8,16 @@ log4js.configure({
   appenders: {
     console: { type: "console" },
     file: {
-      type: "file",
-      filename: path.join(__dirname, "../../logs/app.log"),
-      maxLogSize: 10 * 1024 * 1024,
-      backups: 5,
-      compress: true,
+      type: "dateFile",
+      filename: path.join(__dirname, "../../logs/app"),
+      pattern: ".yyyy-MM.log",
+      compress: false,
     },
     apiFile: {
-      type: "file",
-      filename: path.join(__dirname, "../../logs/api.log"),
-      maxLogSize: 10 * 1024 * 1024,
-      backups: 5,
-      compress: true,
+      type: "dateFile",
+      filename: path.join(__dirname, "../../logs/api"),
+      pattern: ".yyyy-MM.log",
+      compress: false,
     },
   },
   categories: {
