@@ -12,7 +12,15 @@ export async function addRecord(type, prompt, params, filePath, fileSize, status
   const paramsJson = JSON.stringify(params);
 
   try {
-    const [result] = await getPool().execute(sql, [type, prompt, paramsJson, filePath, fileSize, status, errorMsg]);
+    const [result] = await getPool().execute(sql, [
+      String(type),
+      String(prompt || ''),
+      paramsJson,
+      filePath || null,
+      Number(fileSize) || 0,
+      String(status),
+      errorMsg || null
+    ]);
     apiLogger.info(`[History] 添加记录成功 | ID: ${result.insertId} | Type: ${type}`);
     return result.insertId;
   } catch (error) {
