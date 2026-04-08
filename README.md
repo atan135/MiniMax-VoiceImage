@@ -1,6 +1,7 @@
 # 语音图片生成工具
 
 基于 MiniMax API 的语音和图片生成管理平台。
+测试地址：https://minimax.zergzerg.cn
 
 ## 功能特性
 
