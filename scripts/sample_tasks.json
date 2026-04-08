@@ -1,0 +1,26 @@
+{
+  "tasks": [
+    {
+      "type": "voice",
+      "text": "战龙咆哮，恐龙狂狼恐龙狂狼",
+      "voiceId": "German_SweetLady",
+      "model": "speech-2.8-hd",
+      "speed": 1,
+      "emotion": "happy"
+    },
+    {
+      "type": "image",
+      "prompt": "恶龙咆哮卡通版",
+      "n": 1,
+      "aspectRatio": "16:9",
+      "model": "image-01"
+    },
+    {
+      "type": "image",
+      "prompt": "恶龙咆哮暗黑版",
+      "n": 2,
+      "aspectRatio": "1:1",
+      "model": "image-01"
+    }
+  ]
+}

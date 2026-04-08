@@ -27,9 +27,10 @@ router.post("/", async (req, res) => {
     const result = await textToImage(req.body);
     const duration = Date.now() - startTime;
 
-    // 取第一个图片路径作为记录
-    const filePath = result.images?.[0]?.filePath || null;
-    const fileSize = result.images?.[0]?.fileSize || 0;
+    // 取所有图片路径作为记录
+    const filePaths = result.images?.map(i => i.filePath) || [];
+    const filePath = JSON.stringify(filePaths);
+    const fileSize = result.images?.reduce((sum, i) => sum + (i.fileSize || 0), 0) || 0;
 
     // 记录到数据库
     await addRecord(

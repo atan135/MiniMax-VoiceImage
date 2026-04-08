@@ -24,10 +24,11 @@
           <div class="prompt-cell">{{ row.prompt }}</div>
         </template>
       </el-table-column>
-      <el-table-column label="预览" width="100">
+      <el-table-column label="预览" width="120">
         <template #default="{ row }">
           <div v-if="row.status === 'success' && row.type === 'image'" class="thumbnail-cell">
-            <img :src="getFileUrl(row.file_path)" alt="preview" class="thumbnail" @click.stop="openLightbox(getFileUrl(row.file_path))" />
+            <img v-if="getFirstFilePath(row.file_path)" :src="getFileUrl(getFirstFilePath(row.file_path))" alt="preview" class="thumbnail" @click.stop="openLightboxForList(row.file_path)" />
+            <span v-if="getImageCount(row.file_path) > 1" class="image-count">+{{ getImageCount(row.file_path) - 1 }}</span>
           </div>
           <div v-else-if="row.status === 'success' && row.type === 'voice'" class="audio-icon">
             🔊
@@ -96,7 +97,9 @@
             <audio v-if="audioSrc" :src="audioSrc" controls />
           </div>
           <div v-else-if="selectedRecord.type === 'image'" class="image-preview">
-            <img :src="imageSrc" alt="generated image" class="preview-image" @click="openLightbox(imageSrc)" />
+            <div class="image-grid">
+              <img v-for="(img, idx) in imageSrcList" :key="idx" :src="getFileUrl(img)" alt="generated image" class="preview-image" @click="openLightbox(getFileUrl(img))" />
+            </div>
           </div>
           <div v-else class="file-path">{{ selectedRecord.file_path }}</div>
         </div>
@@ -110,6 +113,11 @@
     <!-- 图片放大弹窗 -->
     <el-dialog v-model="lightboxVisible" width="90%" top="5vh" :show-close="true" class="lightbox-dialog" :modal-append-to-body="true">
       <div class="lightbox-content">
+        <div v-if="lightboxImageList.length > 1" class="lightbox-nav">
+          <el-button @click="prevImage" :disabled="lightboxCurrentIndex <= 0">上一张</el-button>
+          <span class="lightbox-counter">{{ lightboxCurrentIndex + 1 }} / {{ lightboxImageList.length }}</span>
+          <el-button @click="nextImage" :disabled="lightboxCurrentIndex >= lightboxImageList.length - 1">下一张</el-button>
+        </div>
         <img :src="lightboxSrc" alt="full size" class="lightbox-image" />
       </div>
     </el-dialog>
@@ -132,8 +140,11 @@ const selectedRecord = ref(null)
 const dialogTitle = ref('')
 const audioSrc = ref('')
 const imageSrc = ref('')
+const imageSrcList = ref([])
 const lightboxVisible = ref(false)
 const lightboxSrc = ref('')
+const lightboxImageList = ref([])
+const lightboxCurrentIndex = ref(0)
 
 const loadData = async () => {
   loading.value = true
@@ -182,12 +193,13 @@ const handleRowClick = async (row) => {
       dialogTitle.value = `记录详情 #${row.id}`
       audioSrc.value = ''
       imageSrc.value = ''
+      imageSrcList.value = []
 
       if (selectedRecord.value.status === 'success' && selectedRecord.value.file_path) {
         if (selectedRecord.value.type === 'voice') {
           audioSrc.value = getFileUrl(selectedRecord.value.file_path)
         } else if (selectedRecord.value.type === 'image') {
-          imageSrc.value = getFileUrl(selectedRecord.value.file_path)
+          imageSrcList.value = parseFilePaths(selectedRecord.value.file_path)
         }
       }
 
@@ -207,7 +219,61 @@ const openLightbox = (src) => {
 const getFileUrl = (filePath) => {
   if (!filePath) return ''
   if (filePath.startsWith('http')) return filePath
-  return '/' + filePath.replace(/\\/g, '/')
+  const normalized = filePath.replace(/\\/g, '/')
+  return normalized.startsWith('/') ? normalized : '/' + normalized
+}
+
+// 解析文件路径列表 (JSON格式或单路径)
+const parseFilePaths = (filePath) => {
+  if (!filePath) return []
+  try {
+    const parsed = JSON.parse(filePath)
+    return Array.isArray(parsed) ? parsed : [filePath]
+  } catch {
+    return [filePath]
+  }
+}
+
+// 获取第一个文件路径
+const getFirstFilePath = (filePath) => {
+  const paths = parseFilePaths(filePath)
+  return paths[0] || ''
+}
+
+// 获取图片数量
+const getImageCount = (filePath) => {
+  return parseFilePaths(filePath).length
+}
+
+// 打开图片列表灯箱
+const openLightboxForList = (filePath) => {
+  const paths = parseFilePaths(filePath)
+  lightboxImageList.value = paths.map(p => getFileUrl(p))
+  if (paths.length > 1) {
+    // 多图模式
+    lightboxCurrentIndex.value = 0
+    lightboxSrc.value = lightboxImageList.value[0]
+    lightboxVisible.value = true
+  } else {
+    // 单图模式
+    openLightbox(lightboxImageList.value[0])
+  }
+}
+
+// 上一张
+const prevImage = () => {
+  if (lightboxCurrentIndex.value > 0) {
+    lightboxCurrentIndex.value--
+    lightboxSrc.value = lightboxImageList.value[lightboxCurrentIndex.value]
+  }
+}
+
+// 下一张
+const nextImage = () => {
+  if (lightboxCurrentIndex.value < lightboxImageList.value.length - 1) {
+    lightboxCurrentIndex.value++
+    lightboxSrc.value = lightboxImageList.value[lightboxCurrentIndex.value]
+  }
 }
 
 onMounted(() => {
@@ -288,6 +354,12 @@ onMounted(() => {
 .image-preview {
   flex: 1;
 }
+.image-preview .image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
 .preview-image {
   max-width: 100%;
   max-height: 300px;
@@ -313,9 +385,18 @@ onMounted(() => {
 }
 .lightbox-content {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  max-height: 85vh;
+}
+.lightbox-nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.lightbox-counter {
+  font-size: 14px;
+  color: #666;
 }
 .lightbox-image {
   max-width: 100%;

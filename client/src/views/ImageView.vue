@@ -146,8 +146,9 @@ const getImageUrl = (filePath) => {
   if (!filePath) return ''
   // 如果是完整URL直接返回
   if (filePath.startsWith('http')) return filePath
-  // 否则转换为 /output 开头的URL
-  return filePath.replace(/\\/g, '/')
+  // 转换为 /output 开头的URL (Vite代理配置 /output/* -> localhost:3000)
+  const normalized = filePath.replace(/\\/g, '/')
+  return normalized.startsWith('/') ? normalized : '/' + normalized
 }
 </script>
 

@@ -40,7 +40,7 @@ async function initDatabase() {
       type ENUM('voice', 'image') NOT NULL,
       prompt TEXT NOT NULL,
       params JSON,
-      file_path VARCHAR(500),
+      file_path TEXT,
       file_size INT DEFAULT 0,
       status ENUM('success', 'failed') NOT NULL DEFAULT 'success',
       error_msg TEXT,

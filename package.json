@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node server/index.js",
     "dev:client": "cd client && npm install && npm run dev",
-    "install:all": "npm install && cd client && npm install"
+    "install:all": "npm install && cd client && npm install",
+    "batch": "node scripts/batchGenerate.js"
   },
   "dependencies": {
     "axios": "^1.7.9",
