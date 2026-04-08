@@ -41,16 +41,16 @@ export async function getRecords(type = null, page = 1, pageSize = 20) {
   if (type) {
     sql += " WHERE type = ?";
     countSql += " WHERE type = ?";
-    params.push(type);
-    countParams.push(type);
+    params.push(String(type));
+    countParams.push(String(type));
   }
 
   sql += " ORDER BY created_at DESC LIMIT ? OFFSET ?";
   params.push(parseInt(pageSize, 10), parseInt((page - 1) * pageSize, 10));
 
   try {
-    const [rows] = await getPool().execute(sql, params);
-    const [countResult] = await getPool().execute(countSql, countParams);
+    const [rows] = await getPool().query(sql, params);
+    const [countResult] = await getPool().query(countSql, countParams);
     const total = countResult[0].total;
 
     return {
@@ -73,7 +73,7 @@ export async function getRecordById(id) {
   const sql = "SELECT * FROM generation_history WHERE id = ?";
 
   try {
-    const [rows] = await getPool().execute(sql, [parseInt(id, 10)]);
+    const [rows] = await getPool().query(sql, [parseInt(id, 10)]);
     return rows[0] || null;
   } catch (error) {
     apiLogger.error(`[History] 查询记录详情失败: ${error.message}`);
