@@ -1,6 +1,11 @@
 <template>
   <div class="voice-clone-view">
     <h2>音色复刻</h2>
+    <el-alert type="info" :closable="false" show-icon class="permission-hint">
+      <template #title>
+        <span>该功能需要解锁 MiniMax 音色复刻权限，如无权限请在MiniMax控制台检查修改</span>
+      </template>
+    </el-alert>
 
     <el-card class="upload-card">
       <template #header>
@@ -10,33 +15,27 @@
         </div>
       </template>
 
-      <div
-        class="drop-zone"
-        :class="{ 'drag-over': isDragOver, 'has-file': audioFile }"
-        @dragover.prevent="isDragOver = true"
-        @dragleave.prevent="isDragOver = false"
-        @drop.prevent="handleDrop"
-        @click="triggerFileInput"
-      >
-        <input
-          ref="fileInput"
-          type="file"
-          accept=".mp3,.m4a,.wav,audio/*"
-          style="display: none"
-          @change="handleFileSelect"
-        />
+      <div class="drop-zone" :class="{ 'drag-over': isDragOver, 'has-file': audioFile }"
+        @dragover.prevent="isDragOver = true" @dragleave.prevent="isDragOver = false" @drop.prevent="handleDrop"
+        @click="triggerFileInput">
+        <input ref="fileInput" type="file" accept=".mp3,.m4a,.wav,audio/*" style="display: none"
+          @change="handleFileSelect" />
         <div v-if="!audioFile" class="drop-content">
           <el-icon class="upload-icon"><upload-filled /></el-icon>
           <p>拖拽音频文件到此处，或 <span class="link">点击上传</span></p>
         </div>
         <div v-else class="file-info">
-          <el-icon class="file-icon"><document /></el-icon>
+          <el-icon class="file-icon">
+            <document />
+          </el-icon>
           <div class="file-details">
             <span class="file-name">{{ audioFile.name }}</span>
             <span class="file-size">{{ formatFileSize(audioFile.size) }}</span>
           </div>
           <el-button type="danger" size="small" circle @click.stop="removeFile">
-            <el-icon><delete /></el-icon>
+            <el-icon>
+              <delete />
+            </el-icon>
           </el-button>
         </div>
       </div>
@@ -46,7 +45,9 @@
           上传音频
         </el-button>
         <span v-if="uploadedFileId" class="upload-success">
-          <el-icon><check /></el-icon> 上传成功，file_id: {{ uploadedFileId }}
+          <el-icon>
+            <check />
+          </el-icon> 上传成功，file_id: {{ uploadedFileId }}
         </span>
       </div>
     </el-card>
@@ -84,12 +85,7 @@
         <el-divider />
 
         <el-form-item label="试听文本(可选)">
-          <el-input
-            v-model="cloneForm.text"
-            type="textarea"
-            :rows="3"
-            placeholder="输入试听文本，将使用复刻后的音色朗读（将收取语音合成费用）"
-          />
+          <el-input v-model="cloneForm.text" type="textarea" :rows="3" placeholder="输入试听文本，将使用复刻后的音色朗读（将收取语音合成费用）" />
         </el-form-item>
 
         <el-form-item v-if="cloneForm.text" label="试听模型">
@@ -273,19 +269,24 @@ const handleClone = async () => {
 .voice-clone-view {
   max-width: 800px;
 }
-.upload-card, .clone-card {
+
+.upload-card,
+.clone-card {
   margin-top: 20px;
 }
+
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
+
 .hint {
   font-size: 12px;
   color: #999;
   font-weight: normal;
 }
+
 .drop-zone {
   border: 2px dashed #dcdfe6;
   border-radius: 8px;
@@ -294,51 +295,64 @@ const handleClone = async () => {
   cursor: pointer;
   transition: all 0.3s;
 }
-.drop-zone:hover, .drag-over {
+
+.drop-zone:hover,
+.drag-over {
   border-color: #409eff;
   background: #f5f7fa;
 }
+
 .drop-zone.has-file {
   padding: 20px;
 }
+
 .drop-content .upload-icon {
   font-size: 48px;
   color: #c0c4cc;
 }
+
 .drop-content p {
   color: #606266;
   margin-top: 10px;
 }
+
 .drop-content .link {
   color: #409eff;
 }
+
 .file-info {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .file-icon {
   font-size: 32px;
   color: #409eff;
 }
+
 .file-details {
   flex: 1;
   text-align: left;
 }
+
 .file-name {
   display: block;
   font-weight: bold;
 }
+
 .file-size {
   font-size: 12px;
   color: #999;
 }
+
 .upload-action {
   margin-top: 20px;
   display: flex;
   align-items: center;
   gap: 16px;
 }
+
 .upload-success {
   color: #67c23a;
   font-size: 14px;
@@ -346,20 +360,29 @@ const handleClone = async () => {
   align-items: center;
   gap: 4px;
 }
+
 .clone-result {
   margin-top: 16px;
 }
+
 .clone-result h4 {
   margin: 8px 0;
 }
+
 .audio-preview {
   margin-top: 12px;
 }
+
 .audio-preview audio {
   width: 100%;
   margin-top: 8px;
 }
+
 .mt-20 {
   margin-top: 20px;
+}
+
+.permission-hint {
+  margin-top: 16px;
 }
 </style>
