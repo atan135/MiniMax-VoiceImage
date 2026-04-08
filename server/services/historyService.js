@@ -46,7 +46,7 @@ export async function getRecords(type = null, page = 1, pageSize = 20) {
   }
 
   sql += " ORDER BY created_at DESC LIMIT ? OFFSET ?";
-  params.push(pageSize, (page - 1) * pageSize);
+  params.push(parseInt(pageSize, 10), parseInt((page - 1) * pageSize, 10));
 
   try {
     const [rows] = await getPool().execute(sql, params);
@@ -73,7 +73,7 @@ export async function getRecordById(id) {
   const sql = "SELECT * FROM generation_history WHERE id = ?";
 
   try {
-    const [rows] = await getPool().execute(sql, [id]);
+    const [rows] = await getPool().execute(sql, [parseInt(id, 10)]);
     return rows[0] || null;
   } catch (error) {
     apiLogger.error(`[History] 查询记录详情失败: ${error.message}`);
