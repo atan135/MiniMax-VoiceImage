@@ -228,7 +228,7 @@ const handleDesign = async () => {
       ElMessage.error(res.data.error || '设计失败')
     }
   } catch (e) {
-    ElMessage.error(e.message || '设计失败')
+    ElMessage.error(e.response?.data?.error || e.message || '设计失败')
   } finally {
     designing.value = false
   }
@@ -252,7 +252,7 @@ const loadVoices = async () => {
       error.value = res.data.error
     }
   } catch (e) {
-    error.value = e.message || '加载音色列表失败'
+    error.value = e.response?.data?.error || e.message || '加载音色列表失败'
   } finally {
     loading.value = false
   }
@@ -270,7 +270,7 @@ const handleRefresh = async () => {
       error.value = res.data.error
     }
   } catch (e) {
-    error.value = e.message || '刷新音色列表失败'
+    error.value = e.response?.data?.error || e.message || '刷新音色列表失败'
   } finally {
     refreshing.value = false
   }
@@ -297,7 +297,7 @@ const handleDelete = async (row, voiceType) => {
     }
   } catch (e) {
     if (e !== 'cancel') {
-      ElMessage.error(e.message || '删除失败')
+      ElMessage.error(e.response?.data?.error || e.message || '删除失败')
     }
   }
 }

@@ -52,6 +52,21 @@ cd client && npm run build
 - Voice deletion: API call + local MySQL delete (even if API fails)
 - History records store masked params JSON, not raw sensitive data
 
+### Frontend Error Handling
+
+API请求报错时，catch块必须优先使用后端返回的错误信息：
+
+```javascript
+// ✅ 正确：优先使用 e.response?.data?.error
+error.value = e.response?.data?.error || e.message || '操作失败'
+ElMessage.error(e.response?.data?.error || e.message || '操作失败')
+
+// ❌ 错误：只使用 e.message，会显示 "Request failed with status code 500"
+error.value = e.message || '操作失败'
+```
+
+涉及文件：`VoiceView.vue`、`ImageView.vue`、`VoiceCloneView.vue`、`VoiceManageView.vue`
+
 ## Database
 
 Two MySQL tables: `generation_history` (all generations) and `voice_inventory` (cached voices).

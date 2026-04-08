@@ -223,7 +223,7 @@ const uploadAudio = async () => {
       error.value = res.data.error
     }
   } catch (e) {
-    error.value = e.message || '上传失败'
+    error.value = e.response?.data?.error || e.message || '上传失败'
   } finally {
     uploading.value = false
   }
@@ -262,7 +262,7 @@ const handleClone = async () => {
       error.value = res.data.error
     }
   } catch (e) {
-    error.value = e.message || '复刻失败'
+    error.value = e.response?.data?.error || e.message || '复刻失败'
   } finally {
     cloning.value = false
   }

@@ -254,7 +254,7 @@ const handleGenerate = async () => {
       error.value = res.data.error
     }
   } catch (e) {
-    error.value = e.message || '生成失败'
+    error.value = e.response?.data?.error || e.message || '生成失败'
   } finally {
     loading.value = false
   }
