@@ -1,6 +1,7 @@
 import axios from "axios";
 import fs from "fs";
 import path from "path";
+import FormData from "form-data";
 import "dotenv/config";
 
 const API_KEY = process.env.API_KEY;
@@ -167,6 +168,97 @@ export async function deleteVoice(voiceId, voiceType) {
     };
   } catch (error) {
     throw new Error(`删除音色失败: ${error.message}`);
+  }
+}
+
+// ============================================================
+// 上传音频文件（用于复刻）
+// ============================================================
+export async function uploadAudioFile(filePath, purpose = "voice_clone") {
+  if (!API_KEY) throw new Error("请先在 .env 中配置 API_KEY");
+  if (!filePath) throw new Error("文件路径不能为空");
+
+  const form = new FormData();
+  form.append("purpose", purpose);
+  form.append("file", fs.createReadStream(filePath));
+
+  try {
+    const response = await axios.post(
+      "https://api.minimaxi.com/v1/files/upload",
+      form,
+      {
+        headers: {
+          ...form.getHeaders(),
+          Authorization: `Bearer ${API_KEY}`,
+        },
+        timeout: 120000,
+      }
+    );
+
+    const resp = response.data;
+
+    if (resp.base_resp && resp.base_resp.status_code !== 0) {
+      throw new Error(`API 错误: ${resp.base_resp.status_msg}`);
+    }
+
+    return {
+      fileId: resp.file?.file_id,
+      bytes: resp.file?.bytes,
+      filename: resp.file?.filename,
+    };
+  } catch (error) {
+    throw new Error(`上传音频文件失败: ${error.message}`);
+  }
+}
+
+// ============================================================
+// 音色快速复刻
+// ============================================================
+export async function voiceClone(params) {
+  const { file_id, voice_id, clone_prompt, text, model, language_boost, need_noise_reduction, need_volume_normalization, aigc_watermark } = params;
+
+  if (!API_KEY) throw new Error("请先在 .env 中配置 API_KEY");
+  if (!file_id) throw new Error("file_id 不能为空");
+  if (!voice_id) throw new Error("voice_id 不能为空");
+
+  const payload = {
+    file_id,
+    voice_id,
+  };
+
+  if (clone_prompt) payload.clone_prompt = clone_prompt;
+  if (text) payload.text = text;
+  if (model) payload.model = model;
+  if (language_boost) payload.language_boost = language_boost;
+  if (need_noise_reduction) payload.need_noise_reduction = need_noise_reduction;
+  if (need_volume_normalization) payload.need_volume_normalization = need_volume_normalization;
+  if (aigc_watermark) payload.aigc_watermark = aigc_watermark;
+
+  try {
+    const response = await axios.post(
+      "https://api.minimaxi.com/v1/voice_clone",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 120000,
+      }
+    );
+
+    const resp = response.data;
+
+    if (resp.base_resp && resp.base_resp.status_code !== 0) {
+      throw new Error(`API 错误: ${resp.base_resp.status_msg}`);
+    }
+
+    return {
+      voiceId: voice_id,
+      demoAudio: resp.demo_audio,
+    };
+  } catch (error) {
+    throw new Error(`音色复刻失败: ${error.message}`);
   }
 }
 

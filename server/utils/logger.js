@@ -24,7 +24,7 @@ log4js.configure({
   },
   categories: {
     default: { appenders: ["console", "file"], level: "info" },
-    api: { appenders: ["apiFile"], level: "info" },
+    api: { appenders: ["console", "apiFile"], level: "info" },
   },
 });
 

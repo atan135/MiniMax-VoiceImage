@@ -5,6 +5,7 @@
       <el-menu-item index="/image">图片生成</el-menu-item>
       <el-menu-item index="/history">历史记录</el-menu-item>
       <el-menu-item index="/voice/manage">音色管理</el-menu-item>
+      <el-menu-item index="/voice/clone">音色复刻</el-menu-item>
     </el-menu>
     <div class="content">
       <router-view />

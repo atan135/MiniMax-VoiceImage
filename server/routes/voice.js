@@ -1,8 +1,24 @@
 import express from "express";
-import { textToSpeech, getAllVoices, deleteVoice, designVoice, BITRATE_LIST, EMOTION_LIST, LANGUAGE_BOOST_LIST, SAMPLE_RATE_LIST, AUDIO_FORMAT_LIST } from "../services/voiceService.js";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { textToSpeech, getAllVoices, deleteVoice, designVoice, uploadAudioFile, voiceClone, BITRATE_LIST, EMOTION_LIST, LANGUAGE_BOOST_LIST, SAMPLE_RATE_LIST, AUDIO_FORMAT_LIST } from "../services/voiceService.js";
 import { refreshVoicesFromAPI, getVoicesFromDB, removeVoice } from "../services/voiceInventoryService.js";
 import { addRecord } from "../services/historyService.js";
 import { apiLogger, maskSensitiveData } from "../utils/logger.js";
+
+// Configure multer for file uploads
+const uploadDir = "output/uploads";
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => cb(null, `${Date.now()}_${file.originalname}`)
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 20 * 1024 * 1024 } // 20MB
+});
 
 const router = express.Router();
 
@@ -60,6 +76,55 @@ router.post("/design", async (req, res) => {
   } catch (error) {
     const duration = Date.now() - startTime;
     apiLogger.error(`[Voice Design] 失败 | 耗时: ${duration}ms | 错误: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 上传复刻音频
+router.post("/upload", upload.single("file"), async (req, res) => {
+  const startTime = Date.now();
+  const file = req.file;
+  const body = req.body;
+  apiLogger.info(`[Voice Upload] 请求参数: file=${file?.originalname}, size=${file?.size}, mimetype=${file?.mimetype}, purpose=${body.purpose || 'voice_clone'}`);
+
+  try {
+    if (!file) {
+      return res.status(400).json({ success: false, error: "请上传音频文件" });
+    }
+
+    const purpose = body.purpose || "voice_clone";
+    const result = await uploadAudioFile(file.path, purpose);
+
+    // 上传完成后删除临时文件
+    fs.unlinkSync(file.path);
+
+    const duration = Date.now() - startTime;
+    apiLogger.info(`[Voice Upload] 成功 | 耗时: ${duration}ms | 返回: fileId=${result.fileId}, bytes=${result.bytes}, filename=${result.filename}`);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    apiLogger.error(`[Voice Upload] 失败 | 耗时: ${duration}ms | 错误: ${error.message}`);
+    // 清理临时文件
+    if (file?.path && fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 音色快速复刻
+router.post("/clone", async (req, res) => {
+  const startTime = Date.now();
+  apiLogger.info(`[Voice Clone] 请求参数: ${JSON.stringify(maskSensitiveData(req.body))}`);
+
+  try {
+    const result = await voiceClone(req.body);
+    const duration = Date.now() - startTime;
+    apiLogger.info(`[Voice Clone] 成功 | 耗时: ${duration}ms | voiceId: ${result.voiceId}`);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    apiLogger.error(`[Voice Clone] 失败 | 耗时: ${duration}ms | 错误: ${error.message}`);
     res.status(500).json({ success: false, error: error.message });
   }
 });
