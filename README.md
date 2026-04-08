@@ -281,6 +281,26 @@ npm run batch
 - Axios - HTTP 客户端
 - Vite - 构建工具
 
+## 开发者小贴士
+
+以下是一些基于开发者视角的小贴士，帮助您的项目更加稳健：
+
+### 1. 鉴权与 API Key 的最佳实践
+
+- **Key 的区分**：调用语音或图片生成能力时，务必使用以 `sk-api-` 开头的普通 API Key（按量计费）。`sk-cp-` 开头的 Coding Plan Key 目前仅支持文本模型。
+- **安全提示**：请勿将 API Key 直接硬编码在客户端代码中，推荐通过环境变量或后端转发的方式进行保护。
+
+### 2. 模型接口地址适配
+
+- **语音合成 (TTS)**：推荐使用最新的 `/v1/t2a_v2` 接口，该接口在性能和参数支持上优于旧版。
+- **图像生成**：目前支持文生图和图生图能力，可以参考 [MiniMax API 文档](https://api.minimaxi.com/) 进行调优。
+
+### 3. 官方开发者资源支持
+
+- **GitHub 仓库**：[MiniMax-AI](https://github.com/MiniMax-AI) 下有多个 MCP 的 Python 和 JS 实现参考
+- **技术支持邮箱**：api@minimaxi.com
+- **模型调试台**：[https://solutions.minimaxi.com/](https://solutions.minimaxi.com/)（可用于快速验证各种模态的效果）
+
 ## 技术文档
 
 详细技术文档位于 `doc/` 目录：
