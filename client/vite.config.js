@@ -15,5 +15,11 @@ export default defineConfig({
         changeOrigin: true
       }
     }
+  },
+  build: {
+    // 限制 esbuild 线程数，减少服务器资源压力
+    esbuild: {
+      threads: 1
+    }
   }
 })

@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "ESBUILD_FORCE_BUILD=1 vite build",
     "preview": "vite preview"
   },
   "dependencies": {
