@@ -37,10 +37,10 @@ async function initDatabase() {
   const createTableSQL = `
     CREATE TABLE IF NOT EXISTS \`${dbName}\`.generation_history (
       id INT AUTO_INCREMENT PRIMARY KEY,
-      type ENUM('voice', 'image') NOT NULL,
+      type ENUM('voice', 'image', 'music', 'lyrics') NOT NULL,
       prompt TEXT NOT NULL,
       params JSON,
-      file_path TEXT,
+      file_path MEDIUMTEXT,
       file_size INT DEFAULT 0,
       status ENUM('success', 'failed') NOT NULL DEFAULT 'success',
       error_msg TEXT,
@@ -48,6 +48,13 @@ async function initDatabase() {
       INDEX idx_type (type),
       INDEX idx_created_at (created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  `;
+
+  // 修改 type 列以支持 music 和 lyrics 枚举值，并扩大 file_path 字段
+  const alterTableSQL = `
+    ALTER TABLE \`${dbName}\`.generation_history
+    MODIFY COLUMN type ENUM('voice', 'image', 'music', 'lyrics') NOT NULL,
+    MODIFY COLUMN file_path MEDIUMTEXT
   `;
 
   try {
@@ -64,8 +71,17 @@ async function initDatabase() {
     const mainPool = getPool();
     const conn = await mainPool.getConnection();
     await conn.query(createTableSQL);
-    conn.release();
     appLogger.info("数据库表 generation_history 已就绪");
+
+    // 修改已存在表的 type 列以支持 music
+    try {
+      await conn.query(alterTableSQL);
+      appLogger.info("数据库表 generation_history.type 列已更新");
+    } catch (error) {
+      // 如果列已经是最新或出错，忽略（表可能不存在或已是最新）
+      appLogger.info("表 type 列更新检查完成");
+    }
+    conn.release();
 
     // 初始化音色库表
     await initVoiceTable();

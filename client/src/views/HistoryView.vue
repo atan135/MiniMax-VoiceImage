@@ -7,6 +7,8 @@
         <el-option label="全部" value="" />
         <el-option label="语音" value="voice" />
         <el-option label="图片" value="image" />
+        <el-option label="歌词" value="lyrics" />
+        <el-option label="音乐" value="music" />
       </el-select>
     </div>
 
@@ -14,8 +16,8 @@
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column label="类型" width="100">
         <template #default="{ row }">
-          <el-tag :type="row.type === 'voice' ? 'primary' : 'success'">
-            {{ row.type === 'voice' ? '语音' : '图片' }}
+          <el-tag :type="getTypeTagType(row.type)">
+            {{ getTypeLabel(row.type) }}
           </el-tag>
         </template>
       </el-table-column>
@@ -32,6 +34,12 @@
           </div>
           <div v-else-if="row.status === 'success' && row.type === 'voice'" class="audio-icon">
             🔊
+          </div>
+          <div v-else-if="row.status === 'success' && row.type === 'music'" class="audio-icon">
+            🎵
+          </div>
+          <div v-else-if="row.status === 'success' && row.type === 'lyrics'" class="lyrics-icon">
+            📝
           </div>
           <span v-else>-</span>
         </template>
@@ -69,8 +77,8 @@
         </div>
         <div class="detail-item">
           <label>类型:</label>
-          <el-tag :type="selectedRecord.type === 'voice' ? 'primary' : 'success'">
-            {{ selectedRecord.type === 'voice' ? '语音' : '图片' }}
+          <el-tag :type="getTypeTagType(selectedRecord.type)">
+            {{ getTypeLabel(selectedRecord.type) }}
           </el-tag>
         </div>
         <div class="detail-item">
@@ -100,6 +108,12 @@
             <div class="image-grid">
               <img v-for="(img, idx) in imageSrcList" :key="idx" :src="getFileUrl(img)" alt="generated image" class="preview-image" @click="openLightbox(getFileUrl(img))" />
             </div>
+          </div>
+          <div v-else-if="selectedRecord.type === 'music'" class="audio-preview">
+            <audio v-if="audioSrc" :src="audioSrc" controls />
+          </div>
+          <div v-else-if="selectedRecord.type === 'lyrics'" class="lyrics-preview">
+            <pre class="lyrics-content">{{ selectedRecord.file_path }}</pre>
           </div>
           <div v-else class="file-path">{{ selectedRecord.file_path }}</div>
         </div>
@@ -185,6 +199,26 @@ const formatParams = (params) => {
   }
 }
 
+const getTypeLabel = (type) => {
+  const labels = {
+    voice: '语音',
+    image: '图片',
+    music: '音乐',
+    lyrics: '歌词'
+  }
+  return labels[type] || type
+}
+
+const getTypeTagType = (type) => {
+  const tagTypes = {
+    voice: 'primary',
+    image: 'success',
+    music: 'warning',
+    lyrics: 'danger'
+  }
+  return tagTypes[type] || 'info'
+}
+
 const handleRowClick = async (row) => {
   try {
     const res = await getHistoryById(row.id)
@@ -196,7 +230,7 @@ const handleRowClick = async (row) => {
       imageSrcList.value = []
 
       if (selectedRecord.value.status === 'success' && selectedRecord.value.file_path) {
-        if (selectedRecord.value.type === 'voice') {
+        if (selectedRecord.value.type === 'voice' || selectedRecord.value.type === 'music') {
           audioSrc.value = getFileUrl(selectedRecord.value.file_path)
         } else if (selectedRecord.value.type === 'image') {
           imageSrcList.value = parseFilePaths(selectedRecord.value.file_path)
@@ -310,6 +344,10 @@ onMounted(() => {
   font-size: 24px;
   text-align: center;
 }
+.lyrics-icon {
+  font-size: 24px;
+  text-align: center;
+}
 .pagination {
   margin-top: 20px;
   display: flex;
@@ -350,6 +388,19 @@ onMounted(() => {
 }
 .audio-preview audio {
   width: 100%;
+}
+.lyrics-preview {
+  flex: 1;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.lyrics-content {
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: #f5f5f5;
+  padding: 12px;
+  border-radius: 4px;
+  margin: 0;
 }
 .image-preview {
   flex: 1;

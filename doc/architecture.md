@@ -2,7 +2,7 @@
 
 ## 系统概述
 
-语音图片生成工具是一个基于 MiniMax API 的全栈应用，采用前后端分离架构：
+语音图片音乐生成工具是一个基于 MiniMax API 的全栈应用，采用前后端分离架构：
 
 - **后端**：Express.js + MySQL
 - **前端**：Vue 3 + Element Plus + Vite
@@ -19,18 +19,18 @@
 ┌─────────────────────────▼───────────────────────────────────┐
 │                      Backend (Express)                       │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
-│  │ voice routes │  │ image routes │  │history routes│       │
+│  │ voice routes │  │ image routes │  │ music routes │       │
 │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
 │         │                 │                 │               │
 │  ┌──────▼───────┐  ┌──────▼───────┐  ┌──────▼───────┐       │
-│  │voiceService  │  │imageService  │  │historyService│       │
-│  │voiceInventory│  │              │  │              │       │
+│  │voiceService  │  │imageService  │  │musicService  │       │
+│  │voiceInventory│  │              │  │  (async job)  │       │
 │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
 └─────────┼─────────────────┼─────────────────┼───────────────┘
           │                 │                 │
 ┌─────────▼─────────────────▼─────────────────▼───────────────┐
 │                      External APIs                           │
-│                   MiniMax API (语音/图片)                     │
+│              MiniMax API (语音/图片/音乐)                     │
 └───────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
@@ -39,7 +39,7 @@
 │  │   MySQL DB      │         │  File System    │             │
 │  │ generation_     │         │  output/voice   │             │
 │  │ history         │         │  output/image   │             │
-│  │ voice_inventory │         │                 │             │
+│  │ voice_inventory │         │  output/music   │             │
 │  └─────────────────┘         └─────────────────┘             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -53,10 +53,12 @@
 │   ├── routes/                # 路由层
 │   │   ├── voice.js          # 语音相关路由
 │   │   ├── image.js          # 图片相关路由
+│   │   ├── music.js          # 音乐相关路由
 │   │   └── history.js        # 历史记录路由
 │   ├── services/             # 业务逻辑层
 │   │   ├── voiceService.js   # 语音生成核心逻辑
 │   │   ├── imageService.js   # 图片生成核心逻辑
+│   │   ├── musicService.js   # 音乐生成核心逻辑
 │   │   ├── voiceInventoryService.js  # 音色库存管理
 │   │   └── historyService.js # 历史记录管理
 │   └── utils/                 # 工具层
@@ -67,8 +69,10 @@
 │       ├── views/            # 页面组件
 │       │   ├── VoiceView.vue
 │       │   ├── ImageView.vue
+│       │   ├── MusicView.vue
 │       │   ├── HistoryView.vue
-│       │   └── VoiceManageView.vue
+│       │   ├── VoiceManageView.vue
+│       │   └── VoiceCloneView.vue
 │       ├── api/              # API 封装
 │       │   └── index.js
 │       ├── router.js        # Vue Router 配置
@@ -79,6 +83,7 @@
 └── output/                    # 生成文件输出
     ├── voice/                # 语音文件
     ├── image/                # 图片文件
+    ├── music/                # 音乐文件
     └── uploads/              # 上传临时文件
 ```
 
@@ -100,6 +105,12 @@
 **image.js** - 图片相关路由
 - `GET /api/image/options` - 获取图片参数选项
 - `POST /api/image` - 生成图片
+
+**music.js** - 音乐相关路由
+- `GET /api/music/options` - 获取音乐参数选项
+- `POST /api/music/lyrics` - 生成歌词
+- `POST /api/music` - 创建音乐生成任务（异步）
+- `GET /api/music/status/:jobId` - 轮询任务状态
 
 **history.js** - 历史记录路由
 - `GET /api/history` - 获取历史列表
@@ -123,6 +134,15 @@
 - `textToImage()` - 调用 MiniMax 图片生成 API
 - `downloadAndSaveImage()` - 下载并保存图片（URL格式）
 - `saveBase64Image()` - 保存 Base64 图片
+
+**musicService.js**
+
+核心功能：
+- `generateLyrics()` - 调用 MiniMax 歌词生成 API
+- `generateMusic()` - 调用 MiniMax 音乐生成 API（同步）
+- `createMusicJob()` - 创建异步音乐生成任务
+- `getMusicJobStatus()` - 获取异步任务状态
+- `saveMusicFile()` - 保存音乐文件
 
 **voiceInventoryService.js**
 
@@ -148,10 +168,10 @@
 -- 生成历史表
 CREATE TABLE generation_history (
   id INT PRIMARY KEY AUTO_INCREMENT,
-  type ENUM('voice', 'image') NOT NULL,
+  type ENUM('voice', 'image', 'music', 'lyrics') NOT NULL,
   prompt TEXT,
   params JSON,
-  file_path VARCHAR(500),
+  file_path MEDIUMTEXT,
   file_size INT DEFAULT 0,
   status ENUM('success', 'failed') DEFAULT 'success',
   error_msg TEXT,
@@ -174,6 +194,7 @@ CREATE TABLE voice_inventory (
 
 - `output/voice/` - 生成的语音文件
 - `output/image/` - 生成的图片文件
+- `output/music/` - 生成的音乐文件
 - `output/uploads/` - 上传的临时文件
 
 ### 4. 前端结构
@@ -188,8 +209,10 @@ CREATE TABLE voice_inventory (
 |------|------|
 | VoiceView | 语音生成页面 |
 | ImageView | 图片生成页面 |
+| MusicView | 音乐生成页面（含歌词生成） |
 | HistoryView | 历史记录页面 |
 | VoiceManageView | 音色管理页面 |
+| VoiceCloneView | 音色复刻页面 |
 
 ### 5. 日志系统
 
@@ -261,6 +284,50 @@ historyService.addRecord() 记录到数据库
 返回结果给前端
      ↓
 ImageView 显示图片预览
+```
+
+### 歌词生成流程
+
+```
+用户输入主题 → MusicView (歌词Tab)
+     ↓
+调用 POST /api/music/lyrics
+     ↓
+music.js 路由接收请求
+     ↓
+musicService.generateLyrics() 调用 MiniMax API
+     ↓
+接收歌词数据
+     ↓
+historyService.addRecord() 记录到数据库
+     ↓
+返回歌词结果给前端
+     ↓
+MusicView 显示歌词，支持一键跳转音乐生成
+```
+
+### 音乐生成流程（异步）
+
+```
+用户输入描述/歌词 → MusicView (音乐Tab)
+     ↓
+调用 POST /api/music
+     ↓
+music.js 路由接收请求
+     ↓
+musicService.createMusicJob() 创建异步任务
+     ↓
+立即返回 jobId 给前端
+     ↓
+后台异步执行 musicService.executeMusicGeneration()
+     ↓
+前端每 200ms 轮询 GET /api/music/status/:jobId
+     ↓
+任务完成后返回结果
+     ↓
+MusicView 显示/播放音乐
+     ↓
+historyService.addRecord() 记录到数据库
 ```
 
 ### 音色同步流程

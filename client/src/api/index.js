@@ -15,6 +15,11 @@ export const deleteVoice = (voiceId, voiceType) => api.delete(`/voice/${voiceId}
 export const getImageOptions = () => api.get('/image/options')
 export const generateImage = (data) => api.post('/image', data)
 
+export const getMusicOptions = () => api.get('/music/options')
+export const generateLyrics = (data) => api.post('/music/lyrics', data)
+export const generateMusic = (data) => api.post('/music', data)
+export const getMusicJobStatus = (jobId) => api.get(`/music/status/${jobId}`)
+
 export const getHistory = (type, page, pageSize) => api.get('/history', { params: { type, page, pageSize } })
 export const getHistoryById = (id) => api.get(`/history/${id}`)
 

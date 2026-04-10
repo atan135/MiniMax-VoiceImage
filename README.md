@@ -1,6 +1,6 @@
 # 语音图片生成工具
 
-基于 MiniMax API 的语音和图片生成管理平台。
+基于 MiniMax API 的语音、图片和音乐生成管理平台。
 测试地址：https://minimax.zergzerg.cn
 
 ## 功能特性
@@ -19,13 +19,21 @@
 - 图片预览和放大查看
 - 生成历史自动记录
 
+### 音乐生成
+- 支持歌词生成：完整歌曲创作和歌词编辑/续写
+- 支持音乐生成：输入歌词和描述生成完整歌曲
+- 支持纯音乐模式（无人声）
+- 支持歌词自动优化
+- 异步生成，实时进度显示
+- 生成历史自动记录
+
 ### 音色管理
 - 刷新音色列表：从 API 同步音色到本地数据库
 - 删除音色：支持克隆音色和生成音色的删除
 - 三类音色分类展示
 
 ### 历史记录
-- 语音和图片生成历史
+- 语音、图片、歌词、音乐生成历史
 - 支持按类型筛选
 - 查看生成详情和错误信息
 
@@ -100,6 +108,14 @@ cd client && npm run dev
 
 ![图片查看-放大](doc/image/图片查看-放大.png)
 
+**歌词生成：**
+
+![歌词生成](doc/image/歌词生成.png)
+
+**音乐生成：**
+
+![音乐生成](doc/image/音乐生成.png)
+
 **历史生成记录：**
 
 ![历史生成记录](doc/image/历史生成记录.png)
@@ -148,6 +164,26 @@ cd client && npm run dev
    - 提示词优化：开启/关闭
 4. **点击生成**：等待图片生成完成
 
+### 歌词生成
+
+1. **选择模式**：完整歌曲 或 编辑/续写
+2. **输入主题**：描述歌曲主题、风格或情感
+3. **指定标题**（可选）：指定歌曲标题
+4. **点击生成**：等待歌词生成完成
+5. **使用歌词**：点击"使用此歌词生成音乐"跳转音乐生成
+
+### 音乐生成
+
+1. **输入描述**：描述音乐风格、情绪和场景
+2. **输入歌词**：输入歌曲歌词（纯音乐除外）
+3. **设置参数**（可选）：
+   - 模型：music-2.6、music-2.5+、music-2.5
+   - 纯音乐模式：生成无人声音乐
+   - 歌词优化：自动优化歌词
+   - 水印：添加 AIGC 水印
+4. **点击生成**：等待音乐生成（预计3-5分钟）
+5. **查看进度**：实时显示生成进度
+
 ### 音色管理
 
 1. **刷新音色**：点击刷新按钮从 MiniMax API 同步最新音色
@@ -157,7 +193,7 @@ cd client && npm run dev
 ### 历史记录
 
 1. **查看历史**：在历史页面查看所有生成记录
-2. **类型筛选**：按语音/图片类型筛选
+2. **类型筛选**：按语音/图片/歌词/音乐类型筛选
 3. **查看详情**：点击记录查看生成参数和文件路径
 
 ## 批量生成脚本
@@ -179,36 +215,41 @@ npm run batch
 │   ├── routes/
 │   │   ├── voice.js          # 语音相关 API
 │   │   ├── image.js          # 图片相关 API
+│   │   ├── music.js          # 音乐相关 API
 │   │   └── history.js        # 历史记录 API
 │   ├── services/
-│   │   ├── voiceService.js   # 语音生成服务
-│   │   ├── imageService.js   # 图片生成服务
+│   │   ├── voiceService.js       # 语音生成服务
+│   │   ├── imageService.js       # 图片生成服务
+│   │   ├── musicService.js       # 音乐生成服务
 │   │   ├── voiceInventoryService.js  # 音色库管理
-│   │   └── historyService.js # 历史记录服务
+│   │   └── historyService.js    # 历史记录服务
 │   └── utils/
-│       ├── logger.js         # 日志工具
-│       └── db.js             # MySQL 数据库连接
+│       ├── logger.js             # 日志工具
+│       └── db.js                 # MySQL 数据库连接
 ├── client/                    # 前端 Vue3 应用
 │   └── src/
 │       ├── views/
-│       │   ├── VoiceView.vue       # 语音生成页面
-│       │   ├── ImageView.vue       # 图片生成页面
-│       │   ├── HistoryView.vue     # 历史记录页面
-│       │   └── VoiceManageView.vue # 音色管理页面
+│       │   ├── VoiceView.vue        # 语音生成页面
+│       │   ├── ImageView.vue        # 图片生成页面
+│       │   ├── MusicView.vue        # 音乐生成页面
+│       │   ├── HistoryView.vue      # 历史记录页面
+│       │   ├── VoiceManageView.vue  # 音色管理页面
+│       │   └── VoiceCloneView.vue   # 音色复刻页面
 │       ├── api/
-│       │   └── index.js      # API 接口封装
-│       ├── router.js         # 路由配置
-│       └── App.vue            # 根组件
+│       │   └── index.js            # API 接口封装
+│       ├── router.js               # 路由配置
+│       └── App.vue                 # 根组件
 ├── scripts/
-│   └── batchGenerate.js       # 批量生成脚本
-├── doc/                       # 技术文档
-│   ├── guide.md              # 使用指南
-│   ├── api.md                # API 文档
-│   └── architecture.md        # 架构文档
-└── output/                    # 生成文件输出目录
-    ├── voice/                 # 语音文件
-    ├── image/                 # 图片文件
-    └── uploads/               # 上传临时文件
+│   └── batchGenerate.js            # 批量生成脚本
+├── doc/                           # 技术文档
+│   ├── guide.md                   # 使用指南
+│   ├── api.md                     # API 文档
+│   └── architecture.md            # 架构文档
+└── output/                        # 生成文件输出目录
+    ├── voice/                     # 语音文件
+    ├── image/                     # 图片文件
+    ├── music/                     # 音乐文件
+    └── uploads/                   # 上传临时文件
 ```
 
 ## 数据库表
@@ -218,10 +259,10 @@ npm run batch
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | id | INT | 主键 |
-| type | ENUM('voice','image') | 生成类型 |
+| type | ENUM('voice','image','music','lyrics') | 生成类型 |
 | prompt | TEXT | 提示词/文本内容 |
 | params | JSON | 完整传参 JSON |
-| file_path | VARCHAR(500) | 文件路径 |
+| file_path | MEDIUMTEXT | 文件路径/歌词内容 |
 | file_size | INT | 文件大小(字节) |
 | status | ENUM('success','failed') | 状态 |
 | error_msg | TEXT | 错误信息 |
@@ -260,6 +301,15 @@ npm run batch
 | GET | /api/image/options | 获取图片生成参数选项 |
 | POST | /api/image | 生成图片 |
 
+### 音乐
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /api/music/options | 获取音乐生成参数选项 |
+| POST | /api/music/lyrics | 生成歌词 |
+| POST | /api/music | 创建音乐生成任务（异步） |
+| GET | /api/music/status/:jobId | 轮询任务状态 |
+
 ### 历史
 
 | 方法 | 路径 | 说明 |
@@ -295,6 +345,7 @@ npm run batch
 
 - **语音合成 (TTS)**：推荐使用最新的 `/v1/t2a_v2` 接口，该接口在性能和参数支持上优于旧版。
 - **图像生成**：目前支持文生图和图生图能力，可以参考 [MiniMax API 文档](https://api.minimaxi.com/) 进行调优。
+- **音乐生成**：音乐生成耗时较长（3-5分钟），建议使用异步任务 + 轮询机制获取结果。
 
 ### 3. 官方开发者资源支持
 
