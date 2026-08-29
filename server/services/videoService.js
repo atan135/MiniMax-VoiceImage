@@ -374,8 +374,10 @@ async function createVideoTask(params = {}) {
   if (!DURATION_LIST.includes(params.duration)) {
     throw new Error("duration 不能为空，且必须是 4-15 之间的整数");
   }
-  if (!RATIO_LIST.includes(params.ratio)) {
-    throw new Error("ratio 不能为空，且必须在枚举内");
+  // ratio 校验：buildContent 会处理"t2v 必须显式非 adaptive"以及
+  // "i2va/r2va 缺省为 adaptive"，这里只校验显式传入的 ratio 是否在枚举内
+  if (params.ratio !== undefined && !RATIO_LIST.includes(params.ratio)) {
+    throw new Error(`ratio 必须是 ${RATIO_LIST.join("/")} 之一`);
   }
 
   let content;
@@ -453,8 +455,8 @@ async function createH3ContextIRTask(params = {}) {
   if (!DURATION_LIST.includes(params.duration)) {
     throw new Error("duration 不能为空，且必须是 4-15 之间的整数");
   }
-  if (!RATIO_LIST.includes(params.ratio)) {
-    throw new Error("ratio 不能为空，且必须在枚举内");
+  if (params.ratio !== undefined && !RATIO_LIST.includes(params.ratio)) {
+    throw new Error(`ratio 必须是 ${RATIO_LIST.join("/")} 之一`);
   }
 
   let content;

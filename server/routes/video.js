@@ -11,6 +11,7 @@ import {
   createVideoTask,
   queryVideoTask,
   finalizeTask,
+  listVideoTasks,
   cancelOrDeleteVideoTask,
   enhancePrompt,
   regenerateVideo,
@@ -271,6 +272,35 @@ router.delete("/:taskId", async (req, res) => {
     apiLogger.error(
       `[Video Cancel/Delete] 失败 | taskId: ${taskId} | 耗时: ${duration}ms | 错误: ${error.message}`,
     );
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ===== GET /list 分页查询视频任务 =====
+router.get("/list", async (req, res) => {
+  const startTime = Date.now();
+  const { pageNum, pageSize, status, taskIds, model, taskType } = req.query || {};
+  const params = {};
+  if (pageNum !== undefined) params.pageNum = Number(pageNum);
+  if (pageSize !== undefined) params.pageSize = Number(pageSize);
+  if (status !== undefined && status !== "") params.status = String(status);
+  if (model !== undefined && model !== "") params.model = String(model);
+  if (taskType !== undefined && taskType !== "") params.taskType = String(taskType);
+  if (taskIds !== undefined && taskIds !== "") {
+    params.taskIds = String(taskIds).split(",").map((s) => s.trim()).filter(Boolean);
+  }
+
+  const maskedParams = maskSensitiveData(params);
+  apiLogger.info(`[Video List] 请求参数: ${JSON.stringify(maskedParams)}`);
+
+  try {
+    const result = await listVideoTasks(params);
+    const duration = Date.now() - startTime;
+    apiLogger.info(`[Video List] 成功 | 耗时: ${duration}ms | items: ${result.items.length} | total: ${result.total}`);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    apiLogger.error(`[Video List] 失败 | 耗时: ${duration}ms | 错误: ${error.message}`);
     res.status(500).json({ success: false, error: error.message });
   }
 });
