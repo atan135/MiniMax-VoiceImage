@@ -24,3 +24,12 @@ export const getHistory = (type, page, pageSize) => api.get('/history', { params
 export const getHistoryById = (id) => api.get(`/history/${id}`)
 
 export default api
+
+// 视频生成 API
+export const getVideoOptions = () => api.get('/video/options')
+export const createVideoTask = (data) => api.post('/video', data)
+export const getVideoTaskStatus = (taskId) => api.get(`/video/status/${taskId}`)
+export const cancelVideoTask = (taskId) => api.delete(`/video/${taskId}`)
+export const enhanceVideoPrompt = (data) => api.post('/video/enhance-prompt', data)
+export const regenerateVideo = (data) => api.post('/video/regenerate', data)
+export const uploadVideoReferenceFile = (formData) => api.post('/video/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
