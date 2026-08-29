@@ -333,6 +333,9 @@ export async function createVideoOldTaskT2V(params = {}) {
     }
     return { taskId: resp.data.task_id };
   } catch (err) {
+    if (err instanceof Error && err.message.startsWith("t2v 创建失败:")) {
+      throw err;
+    }
     throw new Error(`t2v 创建失败: ${extractUpstreamErrorMessage(err)}`);
   }
 }
@@ -354,6 +357,9 @@ export async function createVideoOldTaskI2V(params = {}) {
     }
     return { taskId: resp.data.task_id };
   } catch (err) {
+    if (err instanceof Error && err.message.startsWith("i2v 创建失败:")) {
+      throw err;
+    }
     throw new Error(`i2v 创建失败: ${extractUpstreamErrorMessage(err)}`);
   }
 }
@@ -375,6 +381,9 @@ export async function createVideoOldTaskFL2V(params = {}) {
     }
     return { taskId: resp.data.task_id };
   } catch (err) {
+    if (err instanceof Error && err.message.startsWith("fl2v 创建失败:")) {
+      throw err;
+    }
     throw new Error(`fl2v 创建失败: ${extractUpstreamErrorMessage(err)}`);
   }
 }
@@ -396,6 +405,9 @@ export async function createVideoOldTaskS2V(params = {}) {
     }
     return { taskId: resp.data.task_id };
   } catch (err) {
+    if (err instanceof Error && err.message.startsWith("s2v 创建失败:")) {
+      throw err;
+    }
     throw new Error(`s2v 创建失败: ${extractUpstreamErrorMessage(err)}`);
   }
 }
@@ -443,6 +455,9 @@ export async function queryVideoOldTask(taskId) {
       baseResp: data.base_resp || null,
     };
   } catch (err) {
+    if (err instanceof Error && err.message.startsWith("查询任务失败:")) {
+      throw err;
+    }
     throw new Error(`查询任务失败: ${extractUpstreamErrorMessage(err)}`);
   }
 }
@@ -477,6 +492,9 @@ export async function retrieveVideoOldFile(fileId) {
       createdAt: typeof file.created_at === "number" ? file.created_at : null,
     };
   } catch (err) {
+    if (err instanceof Error && err.message.startsWith("文件检索失败:")) {
+      throw err;
+    }
     throw new Error(`文件检索失败: ${extractUpstreamErrorMessage(err)}`);
   }
 }

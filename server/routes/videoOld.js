@@ -333,7 +333,7 @@ router.get("/status/:taskId", async (req, res) => {
   } catch (error) {
     const msg = extractUpstreamErrorMessage(error);
     apiLogger.error(`[VideoOld Status] 失败 | taskId: ${taskId} | 错误: ${msg}`);
-    res.status(500).json({ success: false, error: msg });
+    res.status(502).json({ success: false, error: msg });
   }
 });
 
