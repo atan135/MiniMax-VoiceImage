@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import VoiceView from './views/VoiceView.vue'
 import ImageView from './views/ImageView.vue'
+import VideoView from './views/VideoView.vue'
 import MusicView from './views/MusicView.vue'
 import HistoryView from './views/HistoryView.vue'
 import VoiceManageView from './views/VoiceManageView.vue'
@@ -10,6 +11,7 @@ const routes = [
   { path: '/', redirect: '/voice' },
   { path: '/voice', component: VoiceView },
   { path: '/image', component: ImageView },
+  { path: '/video', component: VideoView },
   { path: '/music', component: MusicView },
   { path: '/history', component: HistoryView },
   { path: '/voice/manage', component: VoiceManageView },
