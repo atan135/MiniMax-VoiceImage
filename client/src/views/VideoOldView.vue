@@ -831,7 +831,7 @@ async function handleS2V() {
 onMounted(async () => {
   try {
     const res = await getVideoOldOptions()
-    const data = (res.data && res.data.data) || {}
+    const data = res.data || {}
     options.models = data.models || { t2v: [], i2v: [], fl2v: [], s2v: [] }
     options.resolutions = data.resolutions || ['512P', '720P', '768P', '1080P']
     options.durations = data.durations || [6, 10]
