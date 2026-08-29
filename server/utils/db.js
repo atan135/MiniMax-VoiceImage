@@ -12,6 +12,18 @@ const dbConfig = {
   queueLimit: 0,
 };
 
+// ============================================================
+// generation_history.type 枚举值（单一来源）
+// 历史模块：voice / image / music / lyrics / video
+// 旧版视频生成模块：video_old（阶段 2 新增）
+// 后续 historyService / 视频旧版路由校验建议从这里导入，保持一致
+// ============================================================
+const GENERATION_TYPES = ["voice", "image", "music", "lyrics", "video", "video_old"];
+
+function buildEnumSQL() {
+  return GENERATION_TYPES.map((t) => `'${t}'`).join(", ");
+}
+
 let pool = null;
 
 // 初始化数据库连接池
@@ -37,7 +49,7 @@ async function initDatabase() {
   const createTableSQL = `
     CREATE TABLE IF NOT EXISTS \`${dbName}\`.generation_history (
       id INT AUTO_INCREMENT PRIMARY KEY,
-      type ENUM('voice', 'image', 'music', 'lyrics', 'video') NOT NULL,
+      type ENUM(${buildEnumSQL()}) NOT NULL,
       prompt TEXT NOT NULL,
       params JSON,
       file_path MEDIUMTEXT,
@@ -50,10 +62,10 @@ async function initDatabase() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
   `;
 
-  // 修改 type 列以支持 music 和 lyrics 枚举值，并扩大 file_path 字段
+  // 修改 type 列以支持新增枚举值（如 video_old），并扩大 file_path 字段
   const alterTableSQL = `
     ALTER TABLE \`${dbName}\`.generation_history
-    MODIFY COLUMN type ENUM('voice', 'image', 'music', 'lyrics', 'video') NOT NULL,
+    MODIFY COLUMN type ENUM(${buildEnumSQL()}) NOT NULL,
     MODIFY COLUMN file_path MEDIUMTEXT
   `;
 
@@ -73,10 +85,10 @@ async function initDatabase() {
     await conn.query(createTableSQL);
     appLogger.info("数据库表 generation_history 已就绪");
 
-    // 修改已存在表的 type 列以支持 music
+    // 修改已存在表的 type 列以支持新枚举值（如 video_old）
     try {
       await conn.query(alterTableSQL);
-      appLogger.info("数据库表 generation_history.type 列已更新");
+      appLogger.info("数据库表 generation_history.type 列已更新（含 video_old）");
     } catch (error) {
       // 如果列已经是最新或出错，忽略（表可能不存在或已是最新）
       appLogger.info("表 type 列更新检查完成");
@@ -91,4 +103,4 @@ async function initDatabase() {
   }
 }
 
-export { getPool, initDatabase };
+export { getPool, initDatabase, GENERATION_TYPES };
