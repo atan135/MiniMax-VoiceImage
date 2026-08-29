@@ -33,3 +33,12 @@ export const cancelVideoTask = (taskId) => api.delete(`/video/${taskId}`)
 export const enhanceVideoPrompt = (data) => api.post('/video/enhance-prompt', data)
 export const regenerateVideo = (data) => api.post('/video/regenerate', data)
 export const uploadVideoReferenceFile = (formData) => api.post('/video/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+
+// 旧版视频生成 API（V1）
+export const getVideoOldOptions = () => api.get('/video_old/options')
+export const createVideoOldTaskT2V = (data) => api.post('/video_old/t2v', data)
+export const createVideoOldTaskI2V = (data) => api.post('/video_old/i2v', data)
+export const createVideoOldTaskFL2V = (data) => api.post('/video_old/fl2v', data)
+export const createVideoOldTaskS2V = (data) => api.post('/video_old/s2v', data)
+export const getVideoOldTaskStatus = (taskId) => api.get(`/video_old/status/${taskId}`)
+export const retrieveVideoOldFile = (fileId) => api.get(`/video_old/files/${fileId}`)
