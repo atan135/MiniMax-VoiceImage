@@ -18,14 +18,14 @@
                           │ HTTP / JSON
 ┌─────────────────────────▼───────────────────────────────────┐
 │                      Backend (Express)                       │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
-│  │ voice routes │  │ image routes │  │ music routes │       │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │ voice routes │  │ image routes │  │ music routes │  │ video routes │       │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
 │         │                 │                 │               │
-│  ┌──────▼───────┐  ┌──────▼───────┐  ┌──────▼───────┐       │
-│  │voiceService  │  │imageService  │  │musicService  │       │
-│  │voiceInventory│  │              │  │  (async job)  │       │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
+│  ┌──────▼───────┐  ┌──────▼───────┐  ┌──────▼───────┐  ┌──────▼───────┐       │
+│  │voiceService  │  │imageService  │  │musicService  │  │videoService  │       │
+│  │voiceInventory│  │              │  │  (async job)  │  │  (async poll) │       │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
 └─────────┼─────────────────┼─────────────────┼───────────────┘
           │                 │                 │
 ┌─────────▼─────────────────▼─────────────────▼───────────────┐
@@ -54,11 +54,13 @@
 │   │   ├── voice.js          # 语音相关路由
 │   │   ├── image.js          # 图片相关路由
 │   │   ├── music.js          # 音乐相关路由
+│   │   ├── video.js          # 视频相关路由
 │   │   └── history.js        # 历史记录路由
 │   ├── services/             # 业务逻辑层
 │   │   ├── voiceService.js   # 语音生成核心逻辑
 │   │   ├── imageService.js   # 图片生成核心逻辑
 │   │   ├── musicService.js   # 音乐生成核心逻辑
+│   │   ├── videoService.js   # 视频生成核心逻辑（含 H3-Context-IR 与再生成）
 │   │   ├── voiceInventoryService.js  # 音色库存管理
 │   │   └── historyService.js # 历史记录管理
 │   └── utils/                 # 工具层
@@ -112,6 +114,15 @@
 - `POST /api/music` - 创建音乐生成任务（异步）
 - `GET /api/music/status/:jobId` - 轮询任务状态
 
+**video.js** - 视频相关路由
+- `GET /api/video/options` - 获取视频参数选项
+- `POST /api/video` - 创建视频生成任务
+- `GET /api/video/status/:taskId` - 拉取上游状态并落盘
+- `DELETE /api/video/:taskId` - 取消或删除任务
+- `POST /api/video/enhance-prompt` - H3-Context-IR 提示词增强（一站式）
+- `POST /api/video/regenerate` - 视频再生成 768P → 2K
+- `POST /api/video/upload` - multer 单文件上传到 MiniMax
+
 **history.js** - 历史记录路由
 - `GET /api/history` - 获取历史列表
 - `GET /api/history/:id` - 获取历史详情
@@ -144,6 +155,23 @@
 - `getMusicJobStatus()` - 获取异步任务状态
 - `saveMusicFile()` - 保存音乐文件
 
+**videoService.js**
+
+核心功能：
+- `createVideoTask()` - 调用 MiniMax `/v2/video_generation` 创建任务
+- `createH3ContextIRTask()` - 调用 `/v2/h3_context_ir` 创建提示词增强任务
+- `createRegenerationTask()` - 调用 `/v2/video_regeneration` 创建再生成任务
+- `queryVideoTask()` - 查询单个任务状态
+- `listVideoTasks()` - 分页查询任务列表
+- `cancelOrDeleteVideoTask()` - 取消 queued 任务 / 删除已完成任务
+- `pollUntilDone()` - 循环查询直到终态
+- `finalizeTask()` - 终态任务处理（succeeded 落盘 / failed 抛错）
+- `enhancePrompt()` - H3-Context-IR 一站式（创建 + 轮询 + 落盘）
+- `regenerateVideo()` - 再生成一站式（创建 + 轮询 + 落盘）
+- `buildContent()` / `validateContent()` - 多模态 content 数组组装与校验
+- `uploadFileToMiniMax()` - 上传本地文件到 MiniMax
+- `downloadVideo()` - 下载视频到 `output/video/`
+
 **voiceInventoryService.js**
 
 核心功能：
@@ -168,7 +196,7 @@
 -- 生成历史表
 CREATE TABLE generation_history (
   id INT PRIMARY KEY AUTO_INCREMENT,
-  type ENUM('voice', 'image', 'music', 'lyrics') NOT NULL,
+  type ENUM('voice', 'image', 'music', 'lyrics', 'video') NOT NULL,
   prompt TEXT,
   params JSON,
   file_path MEDIUMTEXT,
@@ -195,7 +223,8 @@ CREATE TABLE voice_inventory (
 - `output/voice/` - 生成的语音文件
 - `output/image/` - 生成的图片文件
 - `output/music/` - 生成的音乐文件
-- `output/uploads/` - 上传的临时文件
+- `output/video/` - 生成的视频文件
+- `output/uploads/` - 上传的临时文件（图片/视频/音频）
 
 ### 4. 前端结构
 
@@ -210,6 +239,7 @@ CREATE TABLE voice_inventory (
 | VoiceView | 语音生成页面 |
 | ImageView | 图片生成页面 |
 | MusicView | 音乐生成页面（含歌词生成） |
+| VideoView | 视频生成页面（文生视频/图生视频/多模态参考/提示词增强 4 个 Tab） |
 | HistoryView | 历史记录页面 |
 | VoiceManageView | 音色管理页面 |
 | VoiceCloneView | 音色复刻页面 |
@@ -330,6 +360,34 @@ MusicView 显示/播放音乐
 historyService.addRecord() 记录到数据库
 ```
 
+### 视频生成流程
+
+```
+用户输入 prompt + 配置参数 → VideoView
+     ↓
+如有本地图片/视频/音频 → 先调 POST /api/video/upload 拿 file_id
+     ↓
+调用 POST /api/video（t2v/i2v/r2va）
+     ↓
+video.js 路由接收请求
+     ↓
+videoService.createVideoTask() 调用 MiniMax /v2/video_generation
+     ↓
+拿到 taskId 立即返回给前端
+     ↓
+VideoView 每 3 秒轮询 GET /api/video/status/:taskId
+     ↓
+video.js 路由调用 videoService.queryVideoTask() + finalizeTask()
+     ↓
+succeeded：downloadVideo() 下载到 output/video/
+     ↓
+historyService.addRecord() 记录到数据库（type=video, status=success）
+     ↓
+返回 filePath 给前端 → VideoView 展示 <video> + 下载链接
+```
+
+提示词增强流程：用户提交 prompt → POST /api/video/enhance-prompt → 后端 createH3ContextIRTask + pollUntilDone + finalizeTask → 返回增强后的 prompt → VideoView 展示并支持「应用到文生视频」按钮跨 Tab 回填。
+
 ### 音色同步流程
 
 ```
@@ -372,6 +430,7 @@ VoiceManageView 更新显示
    - 在 `routes/` 添加新路由文件
    - 在 `services/` 添加对应服务
    - 在 `server/index.js` 挂载路由
+   - 参考：视频生成模块（routes/video.js + services/videoService.js）按 create/query/cancel/polling/finalize 模式组织
 
 2. **数据库扩展**
    - 新增表在 `db.js` 的 `initDatabase()` 中添加

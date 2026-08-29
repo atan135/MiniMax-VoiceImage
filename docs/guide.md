@@ -5,6 +5,7 @@
 - [快速开始](#快速开始)
 - [语音生成详解](#语音生成详解)
 - [图片生成详解](#图片生成详解)
+- [视频生成详解](#视频生成详解)
 - [歌词生成详解](#歌词生成详解)
 - [音乐生成详解](#音乐生成详解)
 - [历史生成记录](#历史生成记录)
@@ -175,6 +176,85 @@ cd client && npm run dev
 
 ![图片查看-放大](image/图片查看-放大.png)
 
+
+## 视频生成详解
+
+视频生成基于 MiniMax H3 多模态视频模型，支持 4 种生成模式：文生视频、图生视频（首帧/首尾帧）、多模态参考生视频、提示词增强。
+
+### 1. 4 种生成模式
+
+| 模式 | 场景 | ratio | 多媒体 |
+|------|------|-------|--------|
+| 文生视频 (t2va) | 仅文本描述 | 必填，**不能为 adaptive** | 无 |
+| 图生视频-首帧 (i2va) | 文本 + 1 张首帧图 | adaptive（由图片决定） | image_url role=first_frame |
+| 图生视频-首尾帧 (i2va) | 文本 + 首帧 + 尾帧图 | adaptive | 2 张 image_url |
+| 多模态参考 (r2va) | 文本 + 参考图/视频/音频 | 可选，默认 adaptive | reference_image/video/audio |
+| 提示词增强 | 输入 prompt 增强为结构化版本 | adaptive | 无（仅返回增强文本） |
+
+> **互斥规则**：首帧/尾帧与参考素材不可混用。
+
+### 2. 参数配置
+
+| 参数 | 默认值 | 取值范围 | 说明 |
+|------|--------|---------|------|
+| 模型 | MiniMax-H3 | 固定 | 多模态视频模型 |
+| 分辨率 | 2K | 768P / 2K | 输出视频分辨率 |
+| 时长 | 5 | 4-15 秒 | 视频时长 |
+| 宽高比 | 16:9（文生）/ adaptive（图生）/ adaptive（多模态） | adaptive / 21:9 / 16:9 / 4:3 / 1:1 / 3:4 / 9:16 | 宽高比 |
+| 水印 | false | true/false | 添加 AIGC 水印 |
+
+### 3. 上传文件大小与格式限制
+
+- 图片 (image_url)：JPG / JPEG / PNG / WEBP / HEIC / HEIF，单文件 ≤ 30MB（路由层 20MB 限制，建议客户端 ≤ 20MB）
+- 视频 (video_url，仅多模态参考)：MP4 / MOV，单文件 ≤ 50MB（路由层 20MB 限制，v1 仅服务于 r2va 场景）
+- 音频 (audio_url，仅多模态参考)：WAV / MP3，单文件 ≤ 15MB（路由层 20MB 限制）
+- 多模态参考：参考图 ≤ 9 个、参考视频 ≤ 3 个、参考音频 ≤ 3 个
+
+### 4. 异步任务机制
+
+视频生成采用异步任务模式：
+
+1. 提交后立即返回 taskId（不阻塞客户端）
+2. 前端每 3 秒轮询 `/api/video/status/:taskId`
+3. 命中 succeeded 后服务端下载视频到 `output/video/`，返回可访问 URL
+4. 命中 failed / cancelled 后停止轮询并提示用户
+5. 整个过程耗时约 1-5 分钟（取决于分辨率与时长）
+
+### 5. 任务取消
+
+任务处于 queued 状态时可取消（不产生费用），running 状态必须等待完成。删除已 succeeded/failed 记录用于清理历史。
+
+### 界面示意
+
+**视频生成 - 文生视频 Tab：**
+
+![视频生成-文生视频](image/视频生成-文生视频.png)
+
+**视频生成 - 图生视频 Tab：**
+
+![视频生成-图生视频](image/视频生成-图生视频.png)
+
+**视频生成 - 多模态参考 Tab：**
+
+![视频生成-多模态参考](image/视频生成-多模态参考.png)
+
+**视频生成 - 提示词增强 Tab：**
+
+![视频生成-提示词增强](image/视频生成-提示词增强.png)
+
+### 参考 API 文档
+
+完整的接口定义、请求/响应格式、错误码与示例请参考：
+
+- [docs/video/README.md](../video/README.md) - 接口索引与通用概念
+- [docs/video/generation.md](../video/generation.md) - 创建视频任务
+- [docs/video/query.md](../video/query.md) - 查询任务状态
+- [docs/video/list.md](../video/list.md) - 查询任务列表
+- [docs/video/delete.md](../video/delete.md) - 取消或删除任务
+- [docs/video/context-ir.md](../video/context-ir.md) - H3-Context-IR 提示词增强
+- [docs/video/regeneration.md](../video/regeneration.md) - 视频再生成（768P → 2K）
+
+---
 ---
 
 ## 歌词生成详解
@@ -258,12 +338,13 @@ cd client && npm run dev
 
 ### 查看历史
 
-在导航栏点击「历史记录」进入历史管理页面，可查看所有语音、图片、歌词和音乐生成记录。
+在导航栏点击「历史记录」进入历史管理页面，可查看所有语音、图片、视频、歌词和音乐生成记录。
 
 支持按类型筛选：
 - 全部
 - 语音
 - 图片
+- 视频
 - 歌词
 - 音乐
 
