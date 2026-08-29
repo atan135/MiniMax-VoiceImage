@@ -6,6 +6,7 @@ import "dotenv/config";
 import voiceRouter from "./routes/voice.js";
 import imageRouter from "./routes/image.js";
 import musicRouter from "./routes/music.js";
+import videoRouter from "./routes/video.js";
 import historyRouter from "./routes/history.js";
 import { appLogger, maskSensitiveData } from "./utils/logger.js";
 import { initDatabase } from "./utils/db.js";
@@ -44,6 +45,7 @@ app.use("/output", express.static(path.join(__dirname, "../output")));
 app.use("/api/voice", voiceRouter);
 app.use("/api/image", imageRouter);
 app.use("/api/music", musicRouter);
+app.use("/api/video", videoRouter);
 app.use("/api/history", historyRouter);
 
 // Health check
