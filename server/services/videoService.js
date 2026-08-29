@@ -324,6 +324,268 @@ async function downloadVideo(url, saveName) {
   };
 }
 
+// ============================================================
+// 提取上游错误信息（兼容 V1 base_resp 与 V2 OAI 错误信封）
+// ============================================================
+function extractUpstreamErrorMessage(err) {
+  const data = err && err.response && err.response.data;
+  if (data) {
+    if (data.error && typeof data.error.message === "string" && data.error.message) {
+      return data.error.message;
+    }
+    if (data.base_resp && data.base_resp.status_msg) {
+      return data.base_resp.status_msg;
+    }
+  }
+  return (err && err.message) || String(err);
+}
+
+// 校验公共字段：model/resolution/duration/ratio/aigc_watermark
+function assertCommonParams(params, { requireResolution }) {
+  if (!API_KEY) throw new Error("请先在 .env 中配置 API_KEY");
+  if (!params || typeof params !== "object") throw new Error("params 不能为空");
+  if (params.model !== undefined && params.model !== MODEL) {
+    throw new Error(`model 必须为 "${MODEL}"`);
+  }
+  if (requireResolution && !RESOLUTION_LIST.includes(params.resolution)) {
+    throw new Error(`resolution 必须是 ${RESOLUTION_LIST.join("/")} 之一`);
+  }
+  if (params.duration !== undefined && !DURATION_LIST.includes(params.duration)) {
+    throw new Error(`duration 必须是 ${DURATION_LIST[0]}-${DURATION_LIST[DURATION_LIST.length - 1]} 之间的整数`);
+  }
+  if (params.ratio !== undefined && !RATIO_LIST.includes(params.ratio)) {
+    throw new Error(`ratio 必须是 ${RATIO_LIST.join("/")} 之一`);
+  }
+  if (params.aigc_watermark !== undefined && typeof params.aigc_watermark !== "boolean") {
+    throw new Error("aigc_watermark 必须是 boolean");
+  }
+}
+
+// ============================================================
+// 创建视频生成任务
+// ============================================================
+async function createVideoTask(params = {}) {
+  if (typeof params.prompt !== "string" || !params.prompt.trim()) {
+    throw new Error("prompt 不能为空");
+  }
+  assertCommonParams(params, { requireResolution: true });
+
+  if (!params.resolution) throw new Error("resolution 不能为空");
+  if (!DURATION_LIST.includes(params.duration)) {
+    throw new Error("duration 不能为空，且必须是 4-15 之间的整数");
+  }
+  if (!RATIO_LIST.includes(params.ratio)) {
+    throw new Error("ratio 不能为空，且必须在枚举内");
+  }
+
+  let content;
+  if (Array.isArray(params.content)) {
+    content = params.content;
+  } else if (
+    params.prompt !== undefined ||
+    params.firstFrame !== undefined ||
+    params.lastFrame !== undefined ||
+    params.referenceImages !== undefined ||
+    params.referenceVideos !== undefined ||
+    params.referenceAudios !== undefined
+  ) {
+    const built = buildContent({
+      prompt: params.prompt,
+      firstFrame: params.firstFrame,
+      lastFrame: params.lastFrame,
+      referenceImages: params.referenceImages,
+      referenceVideos: params.referenceVideos,
+      referenceAudios: params.referenceAudios,
+      ratio: params.ratio,
+    });
+    content = built.content;
+    if (params.ratio === undefined) params.ratio = built.ratio;
+  } else {
+    throw new Error("必须提供 prompt 与结构化字段，或直接提供 content 数组");
+  }
+  validateContent(content);
+
+  const payload = {
+    model: MODEL,
+    content,
+    resolution: params.resolution,
+    duration: params.duration,
+    ratio: params.ratio,
+  };
+  if (params.callback_url) payload.callback_url = params.callback_url;
+  if (typeof params.aigc_watermark === "boolean") payload.aigc_watermark = params.aigc_watermark;
+
+  try {
+    const response = await axios.post(
+      "https://api.minimaxi.com/v2/video_generation",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 60000,
+      }
+    );
+
+    const resp = response.data;
+    if (resp && resp.type === "error" && resp.error) {
+      throw new Error(resp.error.message);
+    }
+    if (!resp || !resp.task_id) {
+      throw new Error("响应缺少 task_id");
+    }
+    return { taskId: resp.task_id };
+  } catch (err) {
+    throw new Error(`视频任务创建失败: ${extractUpstreamErrorMessage(err)}`);
+  }
+}
+
+// ============================================================
+// 创建 H3-Context-IR 提示词增强任务
+// ============================================================
+async function createH3ContextIRTask(params = {}) {
+  if (typeof params.prompt !== "string" || !params.prompt.trim()) {
+    throw new Error("prompt 不能为空");
+  }
+  assertCommonParams(params, { requireResolution: false });
+
+  if (!DURATION_LIST.includes(params.duration)) {
+    throw new Error("duration 不能为空，且必须是 4-15 之间的整数");
+  }
+  if (!RATIO_LIST.includes(params.ratio)) {
+    throw new Error("ratio 不能为空，且必须在枚举内");
+  }
+
+  let content;
+  if (Array.isArray(params.content)) {
+    content = params.content;
+  } else if (
+    params.prompt !== undefined ||
+    params.firstFrame !== undefined ||
+    params.lastFrame !== undefined ||
+    params.referenceImages !== undefined ||
+    params.referenceVideos !== undefined ||
+    params.referenceAudios !== undefined
+  ) {
+    const built = buildContent({
+      prompt: params.prompt,
+      firstFrame: params.firstFrame,
+      lastFrame: params.lastFrame,
+      referenceImages: params.referenceImages,
+      referenceVideos: params.referenceVideos,
+      referenceAudios: params.referenceAudios,
+      ratio: params.ratio,
+    });
+    content = built.content;
+    if (params.ratio === undefined) params.ratio = built.ratio;
+  } else {
+    throw new Error("必须提供 prompt 与结构化字段，或直接提供 content 数组");
+  }
+  validateContent(content);
+
+  const payload = {
+    model: MODEL,
+    content,
+    duration: params.duration,
+    ratio: params.ratio,
+  };
+  if (params.callback_url) payload.callback_url = params.callback_url;
+
+  try {
+    const response = await axios.post(
+      "https://api.minimaxi.com/v2/h3_context_ir",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 60000,
+      }
+    );
+
+    const resp = response.data;
+    if (resp && resp.type === "error" && resp.error) {
+      throw new Error(resp.error.message);
+    }
+    if (!resp || !resp.task_id) {
+      throw new Error("响应缺少 task_id");
+    }
+    return { taskId: resp.task_id };
+  } catch (err) {
+    throw new Error(`H3-Context-IR 任务创建失败: ${extractUpstreamErrorMessage(err)}`);
+  }
+}
+
+// ============================================================
+// 创建视频再生成任务（768P -> 2K）
+// ============================================================
+async function createRegenerationTask(params = {}) {
+  assertCommonParams(params, { requireResolution: true });
+
+  if (!params.resolution) throw new Error("resolution 不能为空");
+
+  const hasSourceTaskId = typeof params.source_task_id === "string" && params.source_task_id.length > 0;
+  const content = Array.isArray(params.content) ? params.content : null;
+
+  if (!hasSourceTaskId && !content) {
+    throw new Error("必须提供 source_task_id，或包含 base_video 的 content 数组");
+  }
+  if (hasSourceTaskId && content) {
+    throw new Error("source_task_id 与 content 只能二选一");
+  }
+
+  if (content) {
+    let hasBaseVideo = false;
+    for (const item of content) {
+      if (item && item.type === "video_url" && item.role === "base_video") {
+        hasBaseVideo = true;
+        break;
+      }
+    }
+    if (!hasBaseVideo) {
+      throw new Error("按源视频模式时，content 必须包含 role=base_video 的 video_url 元素");
+    }
+  }
+
+  const payload = {
+    model: MODEL,
+    resolution: params.resolution,
+  };
+  if (hasSourceTaskId) payload.source_task_id = params.source_task_id;
+  if (content) payload.content = content;
+  if (params.callback_url) payload.callback_url = params.callback_url;
+  if (typeof params.aigc_watermark === "boolean") payload.aigc_watermark = params.aigc_watermark;
+
+  try {
+    const response = await axios.post(
+      "https://api.minimaxi.com/v2/video_regeneration",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 60000,
+      }
+    );
+
+    const resp = response.data;
+    if (resp && resp.type === "error" && resp.error) {
+      throw new Error(resp.error.message);
+    }
+    if (!resp || !resp.task_id) {
+      throw new Error("响应缺少 task_id");
+    }
+    return { taskId: resp.task_id };
+  } catch (err) {
+    throw new Error(`视频再生成任务创建失败: ${extractUpstreamErrorMessage(err)}`);
+  }
+}
+
+
+
 export {
   MODEL,
   RESOLUTION_LIST,
@@ -339,4 +601,7 @@ export {
   validateContent,
   uploadFileToMiniMax,
   downloadVideo,
+  createVideoTask,
+  createH3ContextIRTask,
+  createRegenerationTask,
 };
