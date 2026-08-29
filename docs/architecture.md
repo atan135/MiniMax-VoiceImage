@@ -44,6 +44,9 @@
 └─────────────────────────────────────────────────────────────┘
 ```
 
+
+> **V1 旧版视频生成模块**（server/services/videoOldService.js + server/routes/videoOld.js）以完全相同的结构挂载到 /api/video_old，前端通过 /video_old 路由独立访问；命名空间与 V2 模块严格隔离，输出目录 output/video_old/ 与 V2 的 output/video/ 分开。数据流详见「旧版视频生成流程（V1）」节。
+
 ## 目录结构
 
 ```
@@ -54,13 +57,15 @@
 │   │   ├── voice.js          # 语音相关路由
 │   │   ├── image.js          # 图片相关路由
 │   │   ├── music.js          # 音乐相关路由
-│   │   ├── video.js          # 视频相关路由
+│   │   ├── video.js          # 视频生成 V2 路由（H3）
+│   │   ├── videoOld.js       # 视频生成 V1 路由（旧版 Hailuo / T2V / I2V / S2V）
 │   │   └── history.js        # 历史记录路由
 │   ├── services/             # 业务逻辑层
 │   │   ├── voiceService.js   # 语音生成核心逻辑
 │   │   ├── imageService.js   # 图片生成核心逻辑
 │   │   ├── musicService.js   # 音乐生成核心逻辑
-│   │   ├── videoService.js   # 视频生成核心逻辑（含 H3-Context-IR 与再生成）
+│   │   ├── videoService.js   # 视频生成 V2 核心逻辑（含 H3-Context-IR 与再生成）
+│   │   ├── videoOldService.js # 视频生成 V1 核心逻辑（异步任务 + 两段式结果获取）
 │   │   ├── voiceInventoryService.js  # 音色库存管理
 │   │   └── historyService.js # 历史记录管理
 │   └── utils/                 # 工具层
@@ -71,6 +76,8 @@
 │       ├── views/            # 页面组件
 │       │   ├── VoiceView.vue
 │       │   ├── ImageView.vue
+│       │   ├── VideoView.vue
+│       │   ├── VideoOldView.vue
 │       │   ├── MusicView.vue
 │       │   ├── HistoryView.vue
 │       │   ├── VoiceManageView.vue
@@ -239,7 +246,8 @@ CREATE TABLE voice_inventory (
 | VoiceView | 语音生成页面 |
 | ImageView | 图片生成页面 |
 | MusicView | 音乐生成页面（含歌词生成） |
-| VideoView | 视频生成页面（文生视频/图生视频/多模态参考/提示词增强 4 个 Tab） |
+| VideoView | 视频生成页面（文生视频/图生视频/多模态参考/提示词增强 4 个 Tab，V2 / H3） |
+| VideoOldView | 视频生成页面（文生视频/图生视频/首尾帧生视频/主体参考视频 4 个 Tab，V1 / 旧版） |
 | HistoryView | 历史记录页面 |
 | VoiceManageView | 音色管理页面 |
 | VoiceCloneView | 音色复刻页面 |
@@ -387,6 +395,39 @@ historyService.addRecord() 记录到数据库（type=video, status=success）
 ```
 
 提示词增强流程：用户提交 prompt → POST /api/video/enhance-prompt → 后端 createH3ContextIRTask + pollUntilDone + finalizeTask → 返回增强后的 prompt → VideoView 展示并支持「应用到文生视频」按钮跨 Tab 回填。
+
+
+### 旧版视频生成流程（V1）
+
+```
+用户输入 prompt + 配置参数 → VideoOldView
+     ↓
+如有图片（i2v/fl2v/s2v）→ FileReader 转 Base64 DataURL
+     ↓
+调用 POST /api/video_old/{t2v|i2v|fl2v|s2v}
+     ↓
+videoOld.js 路由接收请求
+     ↓
+videoOldService.createVideoOldTaskXxx() 调用 MiniMax /v1/video_generation
+     ↓
+拿到 task_id 立即返回给前端
+     ↓
+VideoOldView 每 3 秒轮询 GET /api/video_old/status/:task_id
+     ↓
+videoOldService.queryVideoOldTask() 查任务状态
+     ↓
+     ├── status=Success：从响应取 file_id，再调 /v1/files/retrieve 拿 download_url
+     │     ↓
+     │   videoOldService.downloadVideo() 落盘到 output/video_old/<task_id>.mp4
+     │     ↓
+     │   historyService.addRecord() 记录到数据库（type=video_old, status=success）
+     │     ↓
+     │   返回 filePath 给前端 → VideoOldView 展示 <video :src="/output/video_old/<task_id>.mp4">
+     │
+     └── status=Fail：返回 base_resp 错误 → VideoOldView ElMessage.error + 重试按钮
+```
+
+任务状态枚举（V1）：`Preparing` / `Queueing` / `Processing` / `Success` / `Fail`。两段式结果获取（task_id -> file_id -> download_url）是 V1 与 V2 的核心差异：V2 一次轮询即返回 `content.url`，V1 需要额外调一次 `/v1/files/retrieve`。
 
 ### 音色同步流程
 

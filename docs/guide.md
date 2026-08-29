@@ -5,7 +5,8 @@
 - [快速开始](#快速开始)
 - [语音生成详解](#语音生成详解)
 - [图片生成详解](#图片生成详解)
-- [视频生成详解](#视频生成详解)
+- [视频生成详解](#视频生成详解)（V2 / H3）
+- [旧版视频生成详解](#旧版视频生成详解)（V1）
 - [歌词生成详解](#歌词生成详解)
 - [音乐生成详解](#音乐生成详解)
 - [历史生成记录](#历史生成记录)
@@ -257,6 +258,147 @@ cd client && npm run dev
 ---
 ---
 
+## 旧版视频生成详解
+
+视频生成（旧版）基于 MiniMax V1 接口集合（`/v1/video_generation`），针对旧版模型（`MiniMax-Hailuo-*`、`T2V-01*`、`I2V-01*`、`S2V-01`）。与上方「视频生成详解」（V2 / H3 模块）**并存不互替**：两者路由前缀、状态机、入参格式、输出目录均独立，互不影响。
+
+> 入口：导航栏 → 「视频生成（旧版）」 → `/video_old`（与「视频生成」`/video` 区分）。
+
+### 与 V2 模块的关键差异
+
+| 项 | V1（旧版） | V2（视频生成详解） |
+|----|-------------|---------------------|
+| 模型 | `MiniMax-Hailuo-2.3/02`、`T2V-01*`、`I2V-01*`、`S2V-01` | `MiniMax-H3` |
+| 创建端点 | `POST /api/video_old/{t2v|i2v|fl2v|s2v}` | `POST /api/video` |
+| 入参格式 | 单字段（`prompt` / `first_frame_image` / `subject_reference` 等） | 多模态 `content[]`（`text` + `image_url` + ...） |
+| 任务状态 | `Preparing` / `Queueing` / `Processing` / `Success` / `Fail` | `queued` / `running` / `succeeded` / `failed` / `cancelled` |
+| 结果获取 | `task_id` -> 轮询 -> `file_id` -> `/v1/files/retrieve` -> `download_url` | `task_id` -> 轮询 -> `task.content.url` |
+| 取消 / 删除 | 不支持 | 支持 |
+| 提示词增强 (H3-Context-IR) | 不支持 | 支持 |
+| 视频再生成 (768P -> 2K) | 不支持 | 支持 |
+| 路由前缀 | `/video_old` | `/video` |
+| 输出目录 | `output/video_old/` | `output/video/` |
+| 历史 type 字段 | `video_old` | `video` |
+
+### 4 个生成场景
+
+V1 在前端通过 4 个 Tab 入口（`/video_old` 路径）：
+
+| Tab | 场景 | 必填参数 |
+|-----|------|---------|
+| 文生视频 (t2v) | 仅文本描述 | `prompt` |
+| 图生视频 (i2v) | 文本 + 1 张首帧图 | `prompt` + `first_frame_image` |
+| 首尾帧生视频 (fl2v) | 文本 + 首帧 + 尾帧图 | `prompt` + `first_frame_image` + `last_frame_image` |
+| 主体参考视频 (s2v) | 文本 + 主体参考图 | `prompt` + `subject_reference[]` |
+
+### 通用参数（4 个场景共享）
+
+| 参数 | 默认值 | 取值范围 | 说明 |
+|------|--------|---------|------|
+| 模型 | `MiniMax-Hailuo-2.3` | 见下方「模型清单」 | 旧版模型系列 |
+| 分辨率 | `768P` | `512P` / `720P` / `768P` / `1080P` | 依模型而定 |
+| 时长 | `6` | `6` / `10` | 视频时长（秒） |
+| `prompt_optimizer` | `true` | `true` / `false` | 是否自动优化 prompt；设为 `false` 可获得更精确控制 |
+| `fast_pretreatment` | `false` | `true` / `false` | 仅 `MiniMax-Hailuo-2.3` / `2.3-Fast` / `02` 生效，缩短优化耗时 |
+| `aigc_watermark` | `false` | `true` / `false` | 是否在生成的视频中添加 AIGC 水印 |
+
+### 模型清单
+
+| 模型 | 适用场景 | 说明 |
+|------|----------|------|
+| `MiniMax-Hailuo-2.3` | t2v / i2v | V1 默认推荐模型，支持 768P / 1080P |
+| `MiniMax-Hailuo-2.3-Fast` | i2v | 速度优化版本，仅支持图生视频 |
+| `MiniMax-Hailuo-02` | t2v / i2v / fl2v | 支持首尾帧生成 |
+| `T2V-01-Director` | t2v | 导演指令版本，支持 `[指令]` 运镜 |
+| `T2V-01` | t2v | 基础文生视频 |
+| `I2V-01-Director` | i2v | 导演指令版本，支持 `[指令]` 运镜 |
+| `I2V-01-live` | i2v | 真人风格模型 |
+| `I2V-01` | i2v | 基础图生视频 |
+| `S2V-01` | s2v | 主体参考视频生成 |
+
+### 异步任务流（两段式结果获取）
+
+V1 与 V2 最大的差别是**结果获取分两段**（V2 直接返回 URL）：
+
+```
+用户提交 -> createVideoOldTaskXxx -> 立即返回 task_id
+        ↓
+VideoOldView 每 3 秒轮询 getVideoOldTaskStatus(task_id)
+        ↓
+        ├── status=Success -> 拿到 file_id
+        │     ↓
+        │   retrieveVideoOldFile(file_id) -> download_url
+        │     ↓
+        │   后端 downloadVideo() 落盘到 output/video_old/<task_id>.mp4
+        │     ↓
+        │   historyService.addRecord(type='video_old', status='success')
+        │     ↓
+        │   VideoOldView 渲染 <video :src="/output/video_old/<task_id>.mp4">
+        │
+        └── status=Fail -> ElMessage.error(...) + 重试按钮
+```
+
+任务状态枚举（V1）：`Preparing` / `Queueing` / `Processing` / `Success` / `Fail`。
+
+> V1 任务成功后 `download_url` 有效期为 1 小时，但本平台后端会立即落盘到本地 `output/video_old/`，前端后续访问走静态服务路径 `/output/video_old/<file>`，不受上游 URL 过期影响。
+
+### 运镜指令 `[指令]`
+
+仅对支持导演指令的模型生效：`MiniMax-Hailuo-2.3`、`MiniMax-Hailuo-02`、`T2V-01-Director`、`I2V-01-Director`。
+
+在 `prompt` 中使用 `[指令]` 语法进行运镜控制（`[左移]`、`[右移]`、`[左摇]`、`[右摇]`、`[推进]`、`[拉远]`、`[上升]`、`[下降]`、`[上摇]`、`[下摇]`、`[变焦推近]`、`[变焦拉远]`、`[晃动]`、`[跟随]`、`[固定]`）。
+
+- **组合运镜**：同一组 `[]` 内的多个指令会同时生效，如 `[左摇,上升]`，建议组合不超过 3 个
+- **顺序运镜**：prompt 中前后出现的指令会依次生效，如 `...[推进], 然后...[拉远]`
+- **自然语言**：也支持通过自然语言描述运镜，但使用标准指令能获得更准确的响应
+
+前端在 prompt 输入框下方提供运镜指令按钮网格，点击后通过 `selectionStart` 自动插入到光标位置。
+
+### 图片要求
+
+`first_frame_image` / `last_frame_image` / `subject_reference[].image` 通用要求：
+
+- 格式：JPG / JPEG / PNG / WebP
+- 体积：<= 20 MB
+- 短边像素：> 300 px
+- 长宽比（短/长）：[0.4, 0.5]（即 2:5 ~ 5:2 之间）
+- 来源：公网 URL 或 Base64 Data URL（`data:image/jpeg;base64,...`）
+
+> 首尾帧生成时，视频尺寸遵循首帧图片；当首尾帧图片尺寸不一致时，模型会按首帧对尾帧进行裁剪。
+
+前端通过 `el-upload` picture-card 接收本地图片，`FileReader` 转 Base64 DataURL 后提交。
+
+### 历史记录
+
+V1 与 V2 在历史记录中分别按 `type` 字段区分：
+
+- V2：`type='video'`
+- V1：`type='video_old'`（显示为「视频（旧版）」）
+
+详情弹窗展示 V1 特有字段：`taskId` / `status` / `fileId` / `videoWidth` / `videoHeight`（通过 `<pre>` 渲染 `params` JSON），视频播放器走 `/output/video_old/<file>` 静态路径，与 V2 模块的 `/output/video/<file>` 不冲突。
+
+### 边界（V1 不做什么）
+
+- H3-Context-IR 提示词增强（V1 不支持）
+- 视频再生成（768P -> 2K）
+- 取消 / 删除任务接口
+- 服务端 `callback_url` 接收（仅前端轮询 `query`）
+- 视频实时预览流、剪辑、合并、转码
+- 自建 CDN 上传 / 分发（使用上游返回的 URL 与本地落盘）
+
+### 接口索引
+
+完整的接口定义、请求/响应格式、错误码与示例请参考：
+
+- [docs/video_old/README.md](../video_old/README.md) - 接口索引与通用概念
+- [docs/video_old/t2v.md](../video_old/t2v.md) - 文生视频
+- [docs/video_old/i2v.md](../video_old/i2v.md) - 图生视频
+- [docs/video_old/fl2v.md](../video_old/fl2v.md) - 首尾帧生视频
+- [docs/video_old/s2v.md](../video_old/s2v.md) - 主体参考视频
+- [docs/video_old/query.md](../video_old/query.md) - 查询任务状态
+- [docs/video_old/download.md](../video_old/download.md) - 检索文件下载链接
+
+---
 ## 歌词生成详解
 
 ### 1. 选择模式
