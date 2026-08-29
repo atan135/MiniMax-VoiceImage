@@ -829,6 +829,36 @@ function finalizeTask(task) {
 
 
 
+// ============================================================
+// H3-Context-IR 提示词增强（一站式：创建 → 轮询 → 落盘）
+// ============================================================
+async function enhancePrompt(params = {}) {
+  const { taskId } = await createH3ContextIRTask(params);
+
+  let task;
+  try {
+    task = await pollUntilDone(taskId, { intervalMs: 2000, timeoutMs: 180000 });
+  } catch (err) {
+    if (err && err.message === "视频任务轮询超时") {
+      throw new Error("提示词增强超时（3 分钟），请稍后重试");
+    }
+    throw err;
+  }
+
+  const result = finalizeTask(task);
+  if (!result || typeof result.prompt !== "string" || !result.prompt.trim()) {
+    throw new Error("提示词增强完成但未返回内容");
+  }
+
+  return {
+    taskId,
+    prompt: result.prompt,
+    enhancedAt: new Date().toISOString(),
+  };
+}
+
+
+
 export {
   MODEL,
   RESOLUTION_LIST,
@@ -852,4 +882,5 @@ export {
   cancelOrDeleteVideoTask,
   pollUntilDone,
   finalizeTask,
+  enhancePrompt,
 };
