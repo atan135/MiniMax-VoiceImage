@@ -586,6 +586,249 @@ async function createRegenerationTask(params = {}) {
 
 
 
+// ============================================================
+// 查询任务
+// ============================================================
+async function queryVideoTask(taskId) {
+  if (!API_KEY) throw new Error("请先在 .env 中配置 API_KEY");
+  if (!taskId) throw new Error("taskId 不能为空");
+
+  try {
+    const response = await axios.get(
+      `https://api.minimaxi.com/v2/query/video_generation/${encodeURIComponent(taskId)}`,
+      {
+        headers: { Authorization: `Bearer ${API_KEY}` },
+        timeout: 30000,
+      }
+    );
+
+    const resp = response.data;
+    if (resp && resp.type === "error" && resp.error) {
+      throw new Error(resp.error.message);
+    }
+    if (!resp || !resp.task) {
+      throw new Error("响应缺少 task 对象");
+    }
+    return resp.task;
+  } catch (err) {
+    throw new Error(`视频任务查询失败: ${extractUpstreamErrorMessage(err)}`);
+  }
+}
+
+// ============================================================
+// 查询任务列表
+// ============================================================
+const STATUS_VALUES = Object.values(STATUS);
+const TASK_TYPE_VALUES = Object.values(TASK_TYPE);
+
+async function listVideoTasks(params = {}) {
+  if (!API_KEY) throw new Error("请先在 .env 中配置 API_KEY");
+
+  const pageNum = params.pageNum !== undefined ? params.pageNum : (params.page_num !== undefined ? params.page_num : 1);
+  const pageSize = params.pageSize !== undefined ? params.pageSize : (params.page_size !== undefined ? params.page_size : 20);
+  const { status, taskIds, model, taskType } = params;
+
+  if (!Number.isInteger(pageNum) || pageNum < 1) {
+    throw new Error("pageNum 必须是 >= 1 的整数");
+  }
+  if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) {
+    throw new Error("pageSize 必须是 1-100 之间的整数");
+  }
+  if (status !== undefined && status !== null && status !== "") {
+    if (!STATUS_VALUES.includes(status)) {
+      throw new Error(`status 必须是 ${STATUS_VALUES.join("/")} 之一`);
+    }
+  }
+  if (taskType !== undefined && taskType !== null && taskType !== "") {
+    if (!TASK_TYPE_VALUES.includes(taskType)) {
+      throw new Error(`taskType 必须是 ${TASK_TYPE_VALUES.join("/")} 之一`);
+    }
+  }
+  if (taskIds !== undefined && taskIds !== null) {
+    if (!Array.isArray(taskIds)) {
+      throw new Error("taskIds 必须是字符串数组");
+    }
+    if (taskIds.length === 0) {
+      throw new Error("taskIds 不能为空数组");
+    }
+    for (const id of taskIds) {
+      if (typeof id !== "string" || !id) {
+        throw new Error("taskIds 元素必须是非空字符串");
+      }
+    }
+  }
+  if (model !== undefined && model !== null && model !== "" && model !== MODEL) {
+    throw new Error(`model 必须是 ${MODEL}`);
+  }
+
+  const queryParams = { page_num: pageNum, page_size: pageSize };
+  const filter = {};
+  if (status) filter.status = status;
+  if (taskType) filter.task_type = taskType;
+  if (model) filter.model = model;
+  if (taskIds) filter.task_ids = taskIds;
+  if (Object.keys(filter).length > 0) queryParams.filter = filter;
+
+  try {
+    const response = await axios.get(
+      "https://api.minimaxi.com/v2/query/video_generation",
+      {
+        headers: { Authorization: `Bearer ${API_KEY}` },
+        params: queryParams,
+        timeout: 30000,
+        paramsSerializer: {
+          indexes: null,
+        },
+      }
+    );
+
+    const resp = response.data;
+    if (resp && resp.type === "error" && resp.error) {
+      throw new Error(resp.error.message);
+    }
+    return {
+      items: Array.isArray(resp && resp.items) ? resp.items : [],
+      total: typeof (resp && resp.total) === "number" ? resp.total : 0,
+    };
+  } catch (err) {
+    throw new Error(`视频任务列表查询失败: ${extractUpstreamErrorMessage(err)}`);
+  }
+}
+
+// ============================================================
+// 取消或删除任务
+// ============================================================
+async function cancelOrDeleteVideoTask(taskId) {
+  if (!API_KEY) throw new Error("请先在 .env 中配置 API_KEY");
+  if (!taskId) throw new Error("taskId 不能为空");
+
+  try {
+    const response = await axios.delete(
+      `https://api.minimaxi.com/v2/video_generation/${encodeURIComponent(taskId)}`,
+      {
+        headers: { Authorization: `Bearer ${API_KEY}` },
+        timeout: 30000,
+      }
+    );
+
+    const resp = response.data;
+    if (resp && resp.type === "error" && resp.error) {
+      throw new Error(resp.error.message);
+    }
+    if (!resp || !resp.task_id) {
+      throw new Error("响应缺少 task_id");
+    }
+    return {
+      taskId: resp.task_id,
+      action: resp.action,
+      status: resp.status,
+    };
+  } catch (err) {
+    throw new Error(`视频任务取消/删除失败: ${extractUpstreamErrorMessage(err)}`);
+  }
+}
+
+// ============================================================
+// 轮询工具
+// ============================================================
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function pollUntilDone(taskId, options = {}) {
+  const { intervalMs = 3000, timeoutMs = 600000, onUpdate, signal } = options;
+
+  if (!API_KEY) throw new Error("请先在 .env 中配置 API_KEY");
+  if (!taskId) throw new Error("taskId 不能为空");
+
+  const startTime = Date.now();
+  let task = null;
+
+  // 首次查询前也允许 abort
+  if (signal && signal.aborted) {
+    throw new DOMException("aborted", "AbortError");
+  }
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    if (signal && signal.aborted) {
+      throw new DOMException("aborted", "AbortError");
+    }
+    if (Date.now() - startTime > timeoutMs) {
+      throw new Error("视频任务轮询超时");
+    }
+
+    task = await queryVideoTask(taskId);
+
+    if (task.status === STATUS.SUCCEEDED) {
+      return task;
+    }
+    if (task.status === STATUS.FAILED) {
+      const msg = (task.error && task.error.message) || task.status;
+      throw new Error(`视频任务失败: ${msg}`);
+    }
+    if (task.status === STATUS.CANCELLED) {
+      throw new Error("视频任务已取消");
+    }
+
+    // queued / running：触发 onUpdate 后等待下一轮
+    if (typeof onUpdate === "function") {
+      try { onUpdate(task); } catch (_) { /* 忽略回调异常，避免影响轮询 */ }
+    }
+
+    if (Date.now() - startTime > timeoutMs) {
+      throw new Error("视频任务轮询超时");
+    }
+    if (signal && signal.aborted) {
+      throw new DOMException("aborted", "AbortError");
+    }
+    await sleep(intervalMs);
+  }
+}
+
+// ============================================================
+// 终态任务落盘
+// ============================================================
+function finalizeTask(task) {
+  if (!task || typeof task !== "object") {
+    throw new Error("task 不能为空");
+  }
+
+  // H3-Context-IR：仅返回增强后的 prompt，不下载文件
+  if (task.task_type === TASK_TYPE.H3_CONTEXT_IR) {
+    return {
+      prompt: task.content && typeof task.content.prompt === "string" ? task.content.prompt : null,
+      filePath: null,
+      fileSize: 0,
+    };
+  }
+
+  if (task.status === STATUS.SUCCEEDED) {
+    const url = task.content && task.content.url;
+    if (!url) throw new Error("视频任务 succeeded 但缺少 content.url");
+    // saveName: video_<ts>_<task_id>.mp4，限制长度避免超 Windows 255
+    const idPart = String(task.task_id || task.id || "unknown").slice(0, 64);
+    const saveName = `video_${Date.now()}_${idPart}.mp4`;
+    if (saveName.length > 240) {
+      // 极少见：极端长 task_id 时截断
+      const trimmed = saveName.slice(0, 236) + ".mp4";
+      return downloadVideo(url, trimmed).then((saved) => ({ filePath: saved.filePath, fileSize: saved.fileSize, url }));
+    }
+    return downloadVideo(url, saveName).then((saved) => ({ filePath: saved.filePath, fileSize: saved.fileSize, url }));
+  }
+
+  if (task.status === STATUS.FAILED) {
+    const msg = (task.error && task.error.message) || "未知错误";
+    throw new Error(`视频生成失败: ${msg}`);
+  }
+  if (task.status === STATUS.CANCELLED) {
+    throw new Error("视频生成已取消");
+  }
+  throw new Error(`视频任务尚未完成: ${task.status || "unknown"}`);
+}
+
+
+
 export {
   MODEL,
   RESOLUTION_LIST,
@@ -604,4 +847,9 @@ export {
   createVideoTask,
   createH3ContextIRTask,
   createRegenerationTask,
+  queryVideoTask,
+  listVideoTasks,
+  cancelOrDeleteVideoTask,
+  pollUntilDone,
+  finalizeTask,
 };
