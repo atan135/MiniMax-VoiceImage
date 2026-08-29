@@ -859,6 +859,85 @@ async function enhancePrompt(params = {}) {
 
 
 
+// ============================================================
+// 视频再生成（768P -> 2K）一站式：创建 → 轮询 → 落盘
+// ============================================================
+async function regenerateVideo(params = {}) {
+  const {
+    sourceTaskId,
+    baseVideo,
+    resolution = "2K",
+    aigcWatermark = false,
+    callbackUrl,
+  } = params || {};
+
+  let upstreamParams = { resolution, aigc_watermark: aigcWatermark };
+  if (callbackUrl !== undefined && callbackUrl !== null) {
+    upstreamParams.callback_url = callbackUrl;
+  }
+
+  const hasSource = typeof sourceTaskId === "string" && sourceTaskId.length > 0;
+  if (hasSource) {
+    upstreamParams.source_task_id = sourceTaskId;
+  } else if (baseVideo !== undefined && baseVideo !== null && baseVideo !== "") {
+    const isUrl = /^https?:\/\//i.test(baseVideo);
+    let videoUrl;
+    if (isUrl) {
+      videoUrl = baseVideo;
+    } else {
+      const uploaded = await uploadFileToMiniMax(baseVideo, "video_regeneration");
+      videoUrl = uploaded.fileId;
+    }
+    upstreamParams.content = [
+      {
+        type: "video_url",
+        video_url: { url: videoUrl },
+        role: "base_video",
+      },
+    ];
+  }
+
+  let taskId;
+  try {
+    const created = await createRegenerationTask(upstreamParams);
+    taskId = created.taskId;
+  } catch (err) {
+    if (
+      err &&
+      typeof err.message === "string" &&
+      err.message.includes("(2013)") &&
+      (err.message.includes("TokenPlan") || err.message.includes("Credit"))
+    ) {
+      const e = new Error(
+        "视频再生成需要 MiniMax-H3 付费计划或白名单，请到 MiniMax 控制台开通后再试"
+      );
+      e.originalMessage = err.message;
+      throw e;
+    }
+    throw err;
+  }
+
+  let task;
+  try {
+    task = await pollUntilDone(taskId, { intervalMs: 3000, timeoutMs: 600000 });
+  } catch (err) {
+    if (err && err.message === "视频任务轮询超时") {
+      throw new Error("视频再生成超时（10 分钟），请稍后重试");
+    }
+    throw err;
+  }
+
+  const result = finalizeTask(task);
+  return {
+    taskId,
+    filePath: result.filePath,
+    fileSize: result.fileSize,
+    url: result.url,
+  };
+}
+
+
+
 export {
   MODEL,
   RESOLUTION_LIST,
@@ -883,4 +962,5 @@ export {
   pollUntilDone,
   finalizeTask,
   enhancePrompt,
+  regenerateVideo,
 };
