@@ -10,6 +10,7 @@
         <el-option label="歌词" value="lyrics" />
         <el-option label="音乐" value="music" />
         <el-option label="视频" value="video" />
+        <el-option label="视频（旧版）" value="video_old" />
       </el-select>
     </div>
 
@@ -43,6 +44,9 @@
             📝
           </div>
           <div v-else-if="row.status === 'success' && row.type === 'video'" class="video-icon">
+            🎬
+          </div>
+          <div v-else-if="row.status === 'success' && row.type === 'video_old'" class="video-icon">
             🎬
           </div>
           <span v-else>-</span>
@@ -213,7 +217,8 @@ const getTypeLabel = (type) => {
     image: '图片',
     music: '音乐',
     lyrics: '歌词',
-    video: '视频'
+    video: '视频',
+    video_old: '视频（旧版）'
   }
   return labels[type] || type
 }
@@ -224,7 +229,8 @@ const getTypeTagType = (type) => {
     image: 'success',
     music: 'warning',
     lyrics: 'danger',
-    video: 'info'
+    video: 'info',
+    video_old: 'warning'
   }
   return tagTypes[type] || 'info'
 }
@@ -246,6 +252,8 @@ const handleRowClick = async (row) => {
         } else if (selectedRecord.value.type === 'image') {
           imageSrcList.value = parseFilePaths(selectedRecord.value.file_path)
         } else if (selectedRecord.value.type === 'video') {
+          videoSrc.value = getFileUrl(selectedRecord.value.file_path)
+        } else if (selectedRecord.value.type === 'video_old') {
           videoSrc.value = getFileUrl(selectedRecord.value.file_path)
         }
       }
