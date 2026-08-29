@@ -9,6 +9,7 @@
         <el-option label="图片" value="image" />
         <el-option label="歌词" value="lyrics" />
         <el-option label="音乐" value="music" />
+        <el-option label="视频" value="video" />
       </el-select>
     </div>
 
@@ -40,6 +41,9 @@
           </div>
           <div v-else-if="row.status === 'success' && row.type === 'lyrics'" class="lyrics-icon">
             📝
+          </div>
+          <div v-else-if="row.status === 'success' && row.type === 'video'" class="video-icon">
+            🎬
           </div>
           <span v-else>-</span>
         </template>
@@ -115,6 +119,9 @@
           <div v-else-if="selectedRecord.type === 'lyrics'" class="lyrics-preview">
             <pre class="lyrics-content">{{ selectedRecord.file_path }}</pre>
           </div>
+          <div v-else-if="selectedRecord.type === 'video'" class="video-preview">
+            <video v-if="selectedRecord.file_path" :src="getFileUrl(selectedRecord.file_path)" controls style="max-width: 100%; max-height: 480px;" />
+          </div>
           <div v-else class="file-path">{{ selectedRecord.file_path }}</div>
         </div>
         <div class="detail-item" v-if="selectedRecord.status === 'failed'">
@@ -155,6 +162,7 @@ const dialogTitle = ref('')
 const audioSrc = ref('')
 const imageSrc = ref('')
 const imageSrcList = ref([])
+const videoSrc = ref('')
 const lightboxVisible = ref(false)
 const lightboxSrc = ref('')
 const lightboxImageList = ref([])
@@ -204,7 +212,8 @@ const getTypeLabel = (type) => {
     voice: '语音',
     image: '图片',
     music: '音乐',
-    lyrics: '歌词'
+    lyrics: '歌词',
+    video: '视频'
   }
   return labels[type] || type
 }
@@ -214,7 +223,8 @@ const getTypeTagType = (type) => {
     voice: 'primary',
     image: 'success',
     music: 'warning',
-    lyrics: 'danger'
+    lyrics: 'danger',
+    video: 'info'
   }
   return tagTypes[type] || 'info'
 }
@@ -228,12 +238,15 @@ const handleRowClick = async (row) => {
       audioSrc.value = ''
       imageSrc.value = ''
       imageSrcList.value = []
+      videoSrc.value = ''
 
       if (selectedRecord.value.status === 'success' && selectedRecord.value.file_path) {
         if (selectedRecord.value.type === 'voice' || selectedRecord.value.type === 'music') {
           audioSrc.value = getFileUrl(selectedRecord.value.file_path)
         } else if (selectedRecord.value.type === 'image') {
           imageSrcList.value = parseFilePaths(selectedRecord.value.file_path)
+        } else if (selectedRecord.value.type === 'video') {
+          videoSrc.value = getFileUrl(selectedRecord.value.file_path)
         }
       }
 
