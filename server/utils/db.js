@@ -37,7 +37,7 @@ async function initDatabase() {
   const createTableSQL = `
     CREATE TABLE IF NOT EXISTS \`${dbName}\`.generation_history (
       id INT AUTO_INCREMENT PRIMARY KEY,
-      type ENUM('voice', 'image', 'music', 'lyrics') NOT NULL,
+      type ENUM('voice', 'image', 'music', 'lyrics', 'video') NOT NULL,
       prompt TEXT NOT NULL,
       params JSON,
       file_path MEDIUMTEXT,
@@ -53,7 +53,7 @@ async function initDatabase() {
   // 修改 type 列以支持 music 和 lyrics 枚举值，并扩大 file_path 字段
   const alterTableSQL = `
     ALTER TABLE \`${dbName}\`.generation_history
-    MODIFY COLUMN type ENUM('voice', 'image', 'music', 'lyrics') NOT NULL,
+    MODIFY COLUMN type ENUM('voice', 'image', 'music', 'lyrics', 'video') NOT NULL,
     MODIFY COLUMN file_path MEDIUMTEXT
   `;
 
