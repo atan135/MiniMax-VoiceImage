@@ -48,7 +48,38 @@
       <el-form-item>
         <el-checkbox v-model="form.prompt_optimizer">Prompt自动优化</el-checkbox>
         <el-checkbox v-model="form.aigc_watermark">添加水印</el-checkbox>
+        <el-checkbox v-model="enableI2i">图生图（主体参考）</el-checkbox>
       </el-form-item>
+
+      <div v-if="enableI2i" class="i2i-panel">
+        <el-form-item label="主体参考">
+          <div class="ref-list">
+            <div v-for="(ref, idx) in subjectReference" :key="idx" class="ref-row">
+              <el-select v-model="ref.type" placeholder="类型" class="ref-type">
+                <el-option
+                  v-for="t in (options.subjectReferenceTypeList || [])"
+                  :key="t"
+                  :label="t"
+                  :value="t"
+                />
+              </el-select>
+              <el-input
+                v-model="ref.image_file"
+                placeholder="参考图片 URL（公网可访问）"
+                class="ref-url"
+              />
+              <el-button
+                type="danger"
+                :icon="Delete"
+                circle
+                size="small"
+                @click="removeReference(idx)"
+              />
+            </div>
+            <el-button :icon="Plus" size="small" @click="addReference">添加参考</el-button>
+          </div>
+        </el-form-item>
+      </div>
 
       <el-form-item>
         <el-button type="primary" @click="handleGenerate" :loading="loading">生成图片</el-button>
@@ -61,7 +92,7 @@
       <p v-if="result.id">任务ID: {{ result.id }}</p>
       <div class="image-grid">
         <div v-for="(img, index) in result.images" :key="index" class="image-item">
-          <img :src="getImageUrl(img.filePath)" :alt="'Generated image ' + index" @click="openLightbox(getImageUrl(img.filePath))" />
+          <img :src="getImageUrl(img.filePath)" :alt="`Generated image ${index}`" @click="openLightbox(getImageUrl(img.filePath))" />
           <div class="image-id">
             <el-input :model-value="img.filePath" readonly size="small" class="id-input">
               <template #append>
@@ -86,7 +117,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { Delete, Plus } from '@element-plus/icons-vue'
 import { getImageOptions, generateImage } from '../api'
 import { ElMessage } from 'element-plus'
 
@@ -102,8 +134,14 @@ const form = reactive({
 
 const options = reactive({
   modelList: ['image-01', 'image-01-live'],
-  aspectRatioList: ['1:1', '16:9', '4:3', '3:2', '2:3', '3:4', '9:16', '21:9']
+  aspectRatioList: ['1:1', '16:9', '4:3', '3:2', '2:3', '3:4', '9:16', '21:9'],
+  subjectReferenceTypeList: ['character']
 })
+
+const enableI2i = ref(false)
+const subjectReference = ref([
+  { type: 'character', image_file: '' }
+])
 
 const loading = ref(false)
 const result = ref(null)
@@ -111,26 +149,68 @@ const error = ref('')
 const lightboxVisible = ref(false)
 const lightboxSrc = ref('')
 
+const validReferences = computed(() =>
+  (enableI2i.value ? subjectReference.value : []).filter(
+    (ref) => ref && ref.type && ref.image_file && ref.image_file.trim()
+  )
+)
+
 onMounted(async () => {
   try {
     const res = await getImageOptions()
     options.modelList = res.data.modelList
     options.aspectRatioList = res.data.aspectRatioList
+    if (res.data.subjectReferenceTypeList) {
+      options.subjectReferenceTypeList = res.data.subjectReferenceTypeList
+    }
   } catch (e) {
     ElMessage.error('获取选项失败')
   }
 })
+
+watch(enableI2i, (val) => {
+  if (!val) {
+    subjectReference.value = [{ type: 'character', image_file: '' }]
+  }
+})
+
+const addReference = () => {
+  subjectReference.value.push({
+    type: options.subjectReferenceTypeList[0] || 'character',
+    image_file: ''
+  })
+}
+
+const removeReference = (idx) => {
+  subjectReference.value.splice(idx, 1)
+  if (subjectReference.value.length === 0) {
+    subjectReference.value.push({
+      type: options.subjectReferenceTypeList[0] || 'character',
+      image_file: ''
+    })
+  }
+}
 
 const handleGenerate = async () => {
   if (!form.prompt) {
     ElMessage.warning('请输入图片描述')
     return
   }
+  if (enableI2i.value && validReferences.value.length === 0) {
+    ElMessage.warning('已开启图生图，请至少填写一个参考图片 URL')
+    return
+  }
   loading.value = true
   error.value = ''
   result.value = null
   try {
-    const res = await generateImage(form)
+    const payload = { ...form }
+    if (enableI2i.value && validReferences.value.length > 0) {
+      payload.subject_reference = validReferences.value
+    } else {
+      delete payload.subject_reference
+    }
+    const res = await generateImage(payload)
     if (res.data.success) {
       result.value = res.data.data
       ElMessage.success('生成成功')
@@ -182,12 +262,9 @@ async function copyToClipboard(text) {
   }
 }
 
-// 转换本地文件路径为URL
 const getImageUrl = (filePath) => {
   if (!filePath) return ''
-  // 如果是完整URL直接返回
   if (filePath.startsWith('http')) return filePath
-  // 转换为 /output 开头的URL (Vite代理配置 /output/* -> localhost:3000)
   const normalized = filePath.replace(/\\/g, '/')
   return normalized.startsWith('/') ? normalized : '/' + normalized
 }
@@ -204,6 +281,31 @@ const getImageUrl = (filePath) => {
   font-size: 12px;
   color: #999;
   float: right;
+}
+.i2i-panel {
+  margin-bottom: 18px;
+  padding: 12px;
+  border: 1px dashed #dcdfe6;
+  border-radius: 8px;
+  background: #fafafa;
+}
+.ref-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.ref-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ref-row .ref-type {
+  width: 140px;
+  flex-shrink: 0;
+}
+.ref-row .ref-url {
+  flex: 1;
 }
 .result {
   margin-top: 24px;
