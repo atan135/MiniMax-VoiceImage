@@ -1,40 +1,73 @@
 <template>
-  <div class="image-view">
-    <h2>图片生成（文生图）</h2>
+  <div class="image-i2i-view">
+    <h2>图生图（Image-to-Image）</h2>
+    <p class="page-desc">使用主体参考图片，生成风格一致的新图。参考图需为公网可访问的图片 URL。</p>
+
     <el-form :model="form" label-width="120px" class="image-form">
       <el-form-item label="图片描述">
         <el-input
           v-model="form.prompt"
           type="textarea"
           :rows="4"
-          placeholder="请输入图片描述"
+          placeholder="描述希望生成的新图片内容"
         />
         <span class="char-count">{{ form.prompt.length }}/1500</span>
       </el-form-item>
 
+      <el-form-item label="主体参考">
+        <div class="ref-list">
+          <div v-for="(ref, idx) in subjectReference" :key="idx" class="ref-row">
+            <el-select v-model="ref.type" placeholder="类型" class="ref-type">
+              <el-option
+                v-for="t in (options.subjectReferenceTypeList || [])"
+                :key="t"
+                :label="t"
+                :value="t"
+              />
+            </el-select>
+            <el-input
+              v-model="ref.image_file"
+              placeholder="参考图片 URL（公网可访问）"
+              class="ref-url"
+            />
+            <el-button
+              type="danger"
+              :icon="Delete"
+              circle
+              size="small"
+              @click="removeReference(idx)"
+            />
+          </div>
+          <div class="ref-actions">
+            <el-button :icon="Plus" size="small" @click="addReference">添加参考</el-button>
+            <span class="ref-hint">至少填写 1 条有效参考（type + URL 都不为空）</span>
+          </div>
+        </div>
+      </el-form-item>
+
       <el-row :gutter="20">
-        <el-col :span="12">
+        <el-col :span="8">
           <el-form-item label="模型">
             <el-select v-model="form.model">
               <el-option v-for="m in options.modelList" :key="m" :label="m" :value="m" />
             </el-select>
           </el-form-item>
         </el-col>
-        <el-col :span="12">
+        <el-col :span="8">
           <el-form-item label="宽高比">
             <el-select v-model="form.aspect_ratio">
               <el-option v-for="r in options.aspectRatioList" :key="r" :label="r" :value="r" />
             </el-select>
           </el-form-item>
         </el-col>
-      </el-row>
-
-      <el-row :gutter="20">
-        <el-col :span="12">
+        <el-col :span="8">
           <el-form-item label="生成数量">
             <el-input-number v-model="form.n" :min="1" :max="9" />
           </el-form-item>
         </el-col>
+      </el-row>
+
+      <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="返回格式">
             <el-select v-model="form.response_format">
@@ -43,15 +76,17 @@
             </el-select>
           </el-form-item>
         </el-col>
+        <el-col :span="12">
+          <el-form-item>
+            <el-checkbox v-model="form.prompt_optimizer">Prompt自动优化</el-checkbox>
+            <el-checkbox v-model="form.aigc_watermark">添加水印</el-checkbox>
+          </el-form-item>
+        </el-col>
       </el-row>
 
       <el-form-item>
-        <el-checkbox v-model="form.prompt_optimizer">Prompt自动优化</el-checkbox>
-        <el-checkbox v-model="form.aigc_watermark">添加水印</el-checkbox>
-      </el-form-item>
-
-      <el-form-item>
         <el-button type="primary" @click="handleGenerate" :loading="loading">生成图片</el-button>
+        <el-button @click="resetForm">重置</el-button>
       </el-form-item>
     </el-form>
 
@@ -71,12 +106,11 @@
           </div>
         </div>
       </div>
-      <p class="image-id-hint">复制图片标识后，到「视频生成 → 图生视频」或「图生图」输入框粘贴即可使用，无需下载再上传</p>
+      <p class="image-id-hint">复制图片标识后，到「视频生成 → 图生视频」或「多模态参考」的图片标识输入框粘贴即可使用，无需下载再上传</p>
     </div>
 
     <el-alert v-if="error" :title="error" type="error" show-icon />
 
-    <!-- 图片放大弹窗 -->
     <el-dialog v-model="lightboxVisible" width="90%" top="5vh" :show-close="true" class="lightbox-dialog" :modal-append-to-body="true">
       <div class="lightbox-content">
         <img :src="lightboxSrc" alt="full size" class="lightbox-image" />
@@ -86,14 +120,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { Delete, Plus } from '@element-plus/icons-vue'
 import { getImageOptions, generateImage } from '../api'
 import { ElMessage } from 'element-plus'
 
 const form = reactive({
   prompt: '',
   model: 'image-01',
-  aspect_ratio: '1:1',
+  aspect_ratio: '16:9',
   n: 1,
   response_format: 'url',
   prompt_optimizer: false,
@@ -102,8 +137,13 @@ const form = reactive({
 
 const options = reactive({
   modelList: ['image-01', 'image-01-live'],
-  aspectRatioList: ['1:1', '16:9', '4:3', '3:2', '2:3', '3:4', '9:16', '21:9']
+  aspectRatioList: ['1:1', '16:9', '4:3', '3:2', '2:3', '3:4', '9:16', '21:9'],
+  subjectReferenceTypeList: ['character']
 })
+
+const subjectReference = ref([
+  { type: 'character', image_file: '' }
+])
 
 const loading = ref(false)
 const result = ref(null)
@@ -111,26 +151,72 @@ const error = ref('')
 const lightboxVisible = ref(false)
 const lightboxSrc = ref('')
 
+const validReferences = computed(() =>
+  subjectReference.value.filter(
+    (ref) => ref && ref.type && ref.image_file && ref.image_file.trim()
+  )
+)
+
 onMounted(async () => {
   try {
     const res = await getImageOptions()
     options.modelList = res.data.modelList
     options.aspectRatioList = res.data.aspectRatioList
+    if (res.data.subjectReferenceTypeList) {
+      options.subjectReferenceTypeList = res.data.subjectReferenceTypeList
+    }
   } catch (e) {
     ElMessage.error('获取选项失败')
   }
 })
+
+const addReference = () => {
+  subjectReference.value.push({
+    type: options.subjectReferenceTypeList[0] || 'character',
+    image_file: ''
+  })
+}
+
+const removeReference = (idx) => {
+  subjectReference.value.splice(idx, 1)
+  if (subjectReference.value.length === 0) {
+    subjectReference.value.push({
+      type: options.subjectReferenceTypeList[0] || 'character',
+      image_file: ''
+    })
+  }
+}
+
+const resetForm = () => {
+  form.prompt = ''
+  form.prompt_optimizer = false
+  form.aigc_watermark = false
+  form.n = 1
+  subjectReference.value = [
+    { type: options.subjectReferenceTypeList[0] || 'character', image_file: '' }
+  ]
+  error.value = ''
+  result.value = null
+}
 
 const handleGenerate = async () => {
   if (!form.prompt) {
     ElMessage.warning('请输入图片描述')
     return
   }
+  if (validReferences.value.length === 0) {
+    ElMessage.warning('请至少填写一个有效的参考图片（type + URL 都不为空）')
+    return
+  }
   loading.value = true
   error.value = ''
   result.value = null
   try {
-    const res = await generateImage(form)
+    const payload = {
+      ...form,
+      subject_reference: validReferences.value
+    }
+    const res = await generateImage(payload)
     if (res.data.success) {
       result.value = res.data.data
       ElMessage.success('生成成功')
@@ -191,8 +277,14 @@ const getImageUrl = (filePath) => {
 </script>
 
 <style scoped>
-.image-view {
-  max-width: 800px;
+.image-i2i-view {
+  max-width: 900px;
+}
+.page-desc {
+  color: #606266;
+  font-size: 13px;
+  margin-top: 4px;
+  margin-bottom: 0;
 }
 .image-form {
   margin-top: 20px;
@@ -201,6 +293,33 @@ const getImageUrl = (filePath) => {
   font-size: 12px;
   color: #999;
   float: right;
+}
+.ref-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+.ref-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ref-row .ref-type {
+  width: 140px;
+  flex-shrink: 0;
+}
+.ref-row .ref-url {
+  flex: 1;
+}
+.ref-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ref-hint {
+  font-size: 12px;
+  color: #909399;
 }
 .result {
   margin-top: 24px;
