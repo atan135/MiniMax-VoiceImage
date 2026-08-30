@@ -76,6 +76,7 @@
           </el-form-item>
 
           <el-form-item label="首帧图片">
+            <div class="image-upload-stack">
             <div class="path-input-block">
               <el-input
                 v-model="i2vForm.firstFramePath"
@@ -106,9 +107,11 @@
               <el-icon><Plus /></el-icon>
             </el-upload>
             <span class="field-hint">或下方直接选择文件：支持 JPG / PNG / WEBP，单文件 ≤ 20MB</span>
+            </div>
           </el-form-item>
 
           <el-form-item label="尾帧图片（可选）">
+            <div class="image-upload-stack">
             <div class="path-input-block">
               <el-input
                 v-model="i2vForm.lastFramePath"
@@ -139,6 +142,7 @@
               <el-icon><Plus /></el-icon>
             </el-upload>
             <span class="field-hint">或下方直接选择文件：不填则只使用首帧</span>
+            </div>
           </el-form-item>
 
           <el-row :gutter="20">
@@ -218,6 +222,7 @@
           </el-row>
 
           <el-form-item label="参考图（≤9）">
+            <div class="image-upload-stack">
             <div class="path-input-block">
               <el-input
                 v-model="mmImagePathInput"
@@ -249,6 +254,7 @@
               <el-icon><Plus /></el-icon>
             </el-upload>
             <span class="field-hint">或下方直接选择文件：单文件 ≤ 20MB，标识与上传文件可同时使用</span>
+            </div>
           </el-form-item>
 
           <el-form-item label="参考视频（≤3）">
@@ -982,13 +988,15 @@ async function handleCancelTask() {
 .error-alert {
   margin-top: 16px;
 }
+.image-upload-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+}
 .path-input-block {
-  margin-top: 4px;
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  background: #f5f7fa;
-  border: 1px dashed #c0c4cc;
-  border-radius: 4px;
+  width: 100%;
 }
 .path-input-block .el-button + .el-button {
   margin-left: 8px;

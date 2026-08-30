@@ -96,6 +96,7 @@
           </el-form-item>
 
           <el-form-item label="首帧图片">
+            <div class="image-upload-stack">
             <div class="path-input-block">
               <el-input
                 v-model="i2vForm.firstFramePath"
@@ -126,6 +127,7 @@
               <el-icon><Plus /></el-icon>
             </el-upload>
             <span class="field-hint">或下方直接选择文件：支持 JPG / PNG / WEBP，单文件 ≤ 20MB</span>
+            </div>
           </el-form-item>
 
           <el-row :gutter="20">
@@ -185,6 +187,7 @@
           </el-form-item>
 
           <el-form-item label="首帧图片">
+            <div class="image-upload-stack">
             <div class="path-input-block">
               <el-input
                 v-model="fl2vForm.firstFramePath"
@@ -215,9 +218,11 @@
               <el-icon><Plus /></el-icon>
             </el-upload>
             <span class="field-hint">或下方直接选择文件：首尾帧仅 MiniMax-Hailuo-02 支持，分辨率 768P / 1080P</span>
+            </div>
           </el-form-item>
 
           <el-form-item label="尾帧图片">
+            <div class="image-upload-stack">
             <div class="path-input-block">
               <el-input
                 v-model="fl2vForm.lastFramePath"
@@ -248,6 +253,7 @@
               <el-icon><Plus /></el-icon>
             </el-upload>
             <span class="field-hint">或下方直接选择文件：首尾帧仅 MiniMax-Hailuo-02 支持</span>
+            </div>
           </el-form-item>
 
           <el-row :gutter="20">
@@ -301,6 +307,7 @@
           </el-form-item>
 
           <el-form-item label="人物主体图">
+            <div class="image-upload-stack">
             <div class="path-input-block">
               <el-input
                 v-model="s2vForm.subjectPath"
@@ -331,6 +338,7 @@
               <el-icon><Plus /></el-icon>
             </el-upload>
             <span class="field-hint">或下方直接选择文件：S2V-01 仅支持单个人物主体（面部），单文件 ≤ 20MB</span>
+            </div>
           </el-form-item>
 
           <el-row :gutter="20">
@@ -1084,13 +1092,15 @@ onMounted(async () => {
 .error-alert {
   margin-top: 16px;
 }
+.image-upload-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+}
 .path-input-block {
-  margin-top: 4px;
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  background: #f5f7fa;
-  border: 1px dashed #c0c4cc;
-  border-radius: 4px;
+  width: 100%;
 }
 .path-input-block .el-button + .el-button {
   margin-left: 8px;
