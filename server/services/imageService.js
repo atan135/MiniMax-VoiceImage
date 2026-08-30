@@ -14,6 +14,7 @@ const MODEL_LIST = ["image-01", "image-01-live"];
 const ASPECT_RATIO_LIST = ["1:1", "16:9", "4:3", "3:2", "2:3", "3:4", "9:16", "21:9"];
 const RESPONSE_FORMAT_LIST = ["url", "base64"];
 const STYLE_LIST = ["realness", "hd", "anime", "illustration", "3d"];
+const SUBJECT_REFERENCE_TYPE_LIST = ["character"];
 
 // ============================================================
 // 下载并保存图片
@@ -85,12 +86,30 @@ export async function textToImage(params) {
     prompt_optimizer = false,
     aigc_watermark = false,
     style,
+    subject_reference,
   } = params;
 
   if (!API_KEY) throw new Error("请先在 .env 中配置 API_KEY");
   if (!prompt) throw new Error("图片描述不能为空");
   if (prompt.length > 1500) throw new Error("图片描述不能超过 1500 字符");
   if (n < 1 || n > 9) throw new Error("生成数量 n 取值范围 1-9");
+
+  if (subject_reference !== undefined && subject_reference !== null) {
+    if (!Array.isArray(subject_reference) || subject_reference.length === 0) {
+      throw new Error("subject_reference 必须是非空数组");
+    }
+    subject_reference.forEach((ref, idx) => {
+      if (!ref || typeof ref !== "object") {
+        throw new Error(`subject_reference[${idx}] 必须是对象`);
+      }
+      if (!SUBJECT_REFERENCE_TYPE_LIST.includes(ref.type)) {
+        throw new Error(`subject_reference[${idx}].type 必须是 ${SUBJECT_REFERENCE_TYPE_LIST.join("/")} 之一`);
+      }
+      if (!ref.image_file || typeof ref.image_file !== "string") {
+        throw new Error(`subject_reference[${idx}].image_file 不能为空且必须是字符串`);
+      }
+    });
+  }
 
   const payload = {
     model,
@@ -115,6 +134,8 @@ export async function textToImage(params) {
 
   if (seed !== undefined) payload.seed = seed;
   if (style && model === "image-01-live") payload.style = style;
+
+  if (subject_reference && subject_reference.length > 0) payload.subject_reference = subject_reference;
 
   const response = await axios.post(
     "https://api.minimaxi.com/v1/image_generation",
@@ -169,4 +190,4 @@ export async function textToImage(params) {
   return result;
 }
 
-export { MODEL_LIST, ASPECT_RATIO_LIST, RESPONSE_FORMAT_LIST, STYLE_LIST, DEFAULT_MODEL };
+export { MODEL_LIST, ASPECT_RATIO_LIST, RESPONSE_FORMAT_LIST, STYLE_LIST, SUBJECT_REFERENCE_TYPE_LIST, DEFAULT_MODEL };

@@ -1,5 +1,5 @@
 import express from "express";
-import { textToImage, MODEL_LIST, ASPECT_RATIO_LIST, RESPONSE_FORMAT_LIST, STYLE_LIST } from "../services/imageService.js";
+import { textToImage, MODEL_LIST, ASPECT_RATIO_LIST, RESPONSE_FORMAT_LIST, STYLE_LIST, SUBJECT_REFERENCE_TYPE_LIST } from "../services/imageService.js";
 import { addRecord } from "../services/historyService.js";
 import { apiLogger, maskSensitiveData } from "../utils/logger.js";
 
@@ -13,6 +13,7 @@ router.get("/options", (req, res) => {
     aspectRatioList: ASPECT_RATIO_LIST,
     responseFormatList: RESPONSE_FORMAT_LIST,
     styleList: STYLE_LIST,
+    subjectReferenceTypeList: SUBJECT_REFERENCE_TYPE_LIST,
   });
 });
 
