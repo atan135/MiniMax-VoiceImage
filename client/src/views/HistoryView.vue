@@ -59,6 +59,13 @@
           </el-tag>
         </template>
       </el-table-column>
+      <el-table-column label="操作" width="100">
+        <template #default="{ row }">
+          <el-button v-if="row.type === 'image' && row.status === 'success' && getFirstFilePath(row.file_path)" size="small" type="primary" link @click.stop="copyImagePath(getFirstFilePath(row.file_path))">
+            复制标识
+          </el-button>
+        </template>
+      </el-table-column>
       <el-table-column prop="created_at" label="创建时间" width="180">
         <template #default="{ row }">
           {{ formatDate(row.created_at) }}
@@ -114,7 +121,10 @@
           </div>
           <div v-else-if="selectedRecord.type === 'image'" class="image-preview">
             <div class="image-grid">
-              <img v-for="(img, idx) in imageSrcList" :key="idx" :src="getFileUrl(img)" alt="generated image" class="preview-image" @click="openLightbox(getFileUrl(img))" />
+              <div v-for="(img, idx) in imageSrcList" :key="idx" class="preview-image-wrap">
+                <img :src="getFileUrl(img)" alt="generated image" class="preview-image" @click="openLightbox(getFileUrl(img))" />
+                <el-button size="small" type="primary" link @click="copyImagePath(img)">复制标识</el-button>
+              </div>
             </div>
           </div>
           <div v-else-if="selectedRecord.type === 'music'" class="audio-preview">
@@ -268,6 +278,35 @@ const handleRowClick = async (row) => {
 const openLightbox = (src) => {
   lightboxSrc.value = src
   lightboxVisible.value = true
+}
+
+const copyImagePath = async (filePath) => {
+  if (!filePath) return
+  const ok = await copyToClipboard(filePath)
+  ElMessage[ok ? 'success' : 'error'](ok ? '图片标识已复制' : '复制失败，请手动复制')
+}
+
+async function copyToClipboard(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch (_) { /* fallback */ }
+  try {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.position = 'fixed'
+    ta.style.left = '-9999px'
+    document.body.appendChild(ta)
+    ta.focus()
+    ta.select()
+    const ok = document.execCommand('copy')
+    document.body.removeChild(ta)
+    return ok
+  } catch (_) {
+    return false
+  }
 }
 
 // 转换文件路径为URL
@@ -438,6 +477,12 @@ onMounted(() => {
   border-radius: 8px;
   cursor: pointer;
   transition: transform 0.2s;
+}
+.preview-image-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
 }
 .preview-image:hover {
   transform: scale(1.02);

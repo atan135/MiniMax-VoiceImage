@@ -62,8 +62,16 @@
       <div class="image-grid">
         <div v-for="(img, index) in result.images" :key="index" class="image-item">
           <img :src="getImageUrl(img.filePath)" :alt="'Generated image ' + index" @click="openLightbox(getImageUrl(img.filePath))" />
+          <div class="image-id">
+            <el-input :model-value="img.filePath" readonly size="small" class="id-input">
+              <template #append>
+                <el-button size="small" @click="copyPath(img.filePath, index)">复制</el-button>
+              </template>
+            </el-input>
+          </div>
         </div>
       </div>
+      <p class="image-id-hint">复制图片标识后，到「视频生成 → 图生视频」或「多模态参考」的图片标识输入框粘贴即可使用，无需下载再上传</p>
     </div>
 
     <el-alert v-if="error" :title="error" type="error" show-icon />
@@ -141,6 +149,39 @@ const openLightbox = (src) => {
   lightboxVisible.value = true
 }
 
+const copyPath = async (filePath, index) => {
+  if (!filePath) return
+  const ok = await copyToClipboard(filePath)
+  if (ok) {
+    ElMessage.success(`已复制第 ${index + 1} 张图片标识`)
+  } else {
+    ElMessage.error(`复制失败，请手动复制`)
+  }
+}
+
+async function copyToClipboard(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch (_) { /* fallback */ }
+  try {
+    const ta = document.createElement(`textarea`)
+    ta.value = text
+    ta.style.position = `fixed`
+    ta.style.left = `-9999px`
+    document.body.appendChild(ta)
+    ta.focus()
+    ta.select()
+    const ok = document.execCommand(`copy`)
+    document.body.removeChild(ta)
+    return ok
+  } catch (_) {
+    return false
+  }
+}
+
 // 转换本地文件路径为URL
 const getImageUrl = (filePath) => {
   if (!filePath) return ''
@@ -213,5 +254,18 @@ const getImageUrl = (filePath) => {
   max-width: 100%;
   max-height: 85vh;
   object-fit: contain;
+}
+.image-id {
+  margin-top: 6px;
+}
+.image-id .id-input :deep(.el-input__inner) {
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #606266;
+}
+.image-id-hint {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #909399;
 }
 </style>

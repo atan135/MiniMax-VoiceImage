@@ -87,7 +87,25 @@
             >
               <el-icon><Plus /></el-icon>
             </el-upload>
-            <span class="field-hint">支持 JPG / PNG / WEBP，单文件 ≤ 20MB</span>
+            <div class="path-input-block">
+              <el-input
+                v-model="i2vForm.firstFramePath"
+                placeholder="或粘贴图片标识（从图片生成结果复制）"
+                clearable
+                size="small"
+                @keyup.enter="applyFirstFramePath"
+              >
+                <template #append>
+                  <el-button size="small" @click="applyFirstFramePath">使用</el-button>
+                </template>
+              </el-input>
+              <div v-if="i2vForm.firstFramePath" class="path-preview">
+                <img :src="getFileUrl(i2vForm.firstFramePath)" alt="首帧预览" class="preview-thumb" @error="onPreviewError($event)" />
+                <span class="path-preview-label">{{ i2vForm.firstFramePath }}</span>
+                <el-button size="small" type="danger" link @click="clearFirstFramePath">清除</el-button>
+              </div>
+            </div>
+            <span class="field-hint">支持 JPG / PNG / WEBP，单文件 ≤ 20MB；可直接粘贴图片标识跳过上传</span>
           </el-form-item>
 
           <el-form-item label="尾帧图片（可选）">
@@ -102,7 +120,25 @@
             >
               <el-icon><Plus /></el-icon>
             </el-upload>
-            <span class="field-hint">不填则只使用首帧</span>
+            <div class="path-input-block">
+              <el-input
+                v-model="i2vForm.lastFramePath"
+                placeholder="或粘贴图片标识（可选）"
+                clearable
+                size="small"
+                @keyup.enter="applyLastFramePath"
+              >
+                <template #append>
+                  <el-button size="small" @click="applyLastFramePath">使用</el-button>
+                </template>
+              </el-input>
+              <div v-if="i2vForm.lastFramePath" class="path-preview">
+                <img :src="getFileUrl(i2vForm.lastFramePath)" alt="尾帧预览" class="preview-thumb" @error="onPreviewError($event)" />
+                <span class="path-preview-label">{{ i2vForm.lastFramePath }}</span>
+                <el-button size="small" type="danger" link @click="clearLastFramePath">清除</el-button>
+              </div>
+            </div>
+            <span class="field-hint">不填则只使用首帧；可直接粘贴图片标识</span>
           </el-form-item>
 
           <el-row :gutter="20">
@@ -194,7 +230,25 @@
             >
               <el-icon><Plus /></el-icon>
             </el-upload>
-            <span class="field-hint">参考图用于风格/构图参考，单文件 ≤ 20MB</span>
+            <div class="path-input-block">
+              <el-input
+                v-model="mmImagePathInput"
+                type="textarea"
+                :rows="2"
+                placeholder="或粘贴图片标识（每行一个，最多 9 个）"
+                size="small"
+              />
+              <el-button size="small" type="primary" @click="applyMmImagePaths">加入列表</el-button>
+              <el-button size="small" @click="mmImagePathInput = ''">清空输入</el-button>
+              <div v-if="mmForm.referenceImagePaths.length > 0" class="path-preview-list">
+                <div v-for="(p, idx) in mmForm.referenceImagePaths" :key="'mm-path-' + idx" class="path-preview">
+                  <img :src="getFileUrl(p)" alt="参考图预览" class="preview-thumb" @error="onPreviewError($event)" />
+                  <span class="path-preview-label">{{ p }}</span>
+                  <el-button size="small" type="danger" link @click="removeMmImagePath(idx)">移除</el-button>
+                </div>
+              </div>
+            </div>
+            <span class="field-hint">参考图用于风格/构图参考，单文件 ≤ 20MB；可直接粘贴图片标识</span>
           </el-form-item>
 
           <el-form-item label="参考视频（≤3）">
@@ -358,6 +412,8 @@ const i2vForm = reactive({
   prompt: '',
   firstFrameFiles: [],
   lastFrameFiles: [],
+  firstFramePath: '',
+  lastFramePath: '',
   resolution: '2K',
   duration: 5,
   aigcWatermark: false,
@@ -372,10 +428,12 @@ const mmForm = reactive({
   ratio: 'adaptive',
   aigcWatermark: false,
   referenceImageFiles: [],
+  referenceImagePaths: [],
   referenceVideoFiles: [],
   referenceAudioFiles: [],
 })
 const mmLoading = ref(false)
+const mmImagePathInput = ref('')
 
 // ===== Tab 4 表单：提示词增强 =====
 const enhanceForm = reactive({
@@ -429,6 +487,108 @@ function getFileUrl(filePath) {
   if (/^https?:\/\//i.test(filePath)) return filePath
   const normalized = filePath.replace(/\\/g, '/')
   return normalized.startsWith('/') ? normalized : '/' + normalized
+}
+
+// ===== 图片标识处理 =====
+// 把图片标识统一规范化为后端能识别的相对路径
+function normalizeImagePath(raw) {
+  if (!raw || typeof raw !== 'string') return ''
+  let p = raw.trim().replace(/\\/g, '/')
+  if (p.startsWith('/output/')) p = 'output/' + p.slice('/output/'.length)
+  while (p.startsWith('/')) p = p.slice(1)
+  return p
+}
+
+// 用 HEAD 请求探测 /output/<path> 是否可达
+async function probeImagePath(p) {
+  if (!p) return false
+  const url = getFileUrl(p)
+  try {
+    const res = await fetch(url, { method: 'HEAD' })
+    return res.ok
+  } catch (_) {
+    return false
+  }
+}
+
+function hasI2vMedia() {
+  return Boolean(i2vForm.firstFramePath || i2vForm.lastFramePath) ||
+    i2vForm.firstFrameFiles.length > 0 ||
+    i2vForm.lastFrameFiles.length > 0
+}
+
+async function applyFirstFramePath() {
+  const normalized = normalizeImagePath(i2vForm.firstFramePath)
+  if (!normalized) {
+    ElMessage.warning('请输入图片标识')
+    return
+  }
+  if (!(await probeImagePath(normalized))) {
+    ElMessage.error('图片标识无效或文件不存在：' + normalized)
+    return
+  }
+  i2vForm.firstFramePath = normalized
+  ElMessage.success('首帧图片标识已应用')
+}
+
+function clearFirstFramePath() {
+  i2vForm.firstFramePath = ''
+}
+
+async function applyLastFramePath() {
+  const normalized = normalizeImagePath(i2vForm.lastFramePath)
+  if (!normalized) {
+    ElMessage.warning('请输入图片标识')
+    return
+  }
+  if (!(await probeImagePath(normalized))) {
+    ElMessage.error('图片标识无效或文件不存在：' + normalized)
+    return
+  }
+  i2vForm.lastFramePath = normalized
+  ElMessage.success('尾帧图片标识已应用')
+}
+
+function clearLastFramePath() {
+  i2vForm.lastFramePath = ''
+}
+
+async function applyMmImagePaths() {
+  const lines = (mmImagePathInput.value || '')
+    .split(/[\r\n]+/)
+    .map((s) => normalizeImagePath(s))
+    .filter(Boolean)
+  if (lines.length === 0) {
+    ElMessage.warning('请输入至少一个图片标识')
+    return
+  }
+  const remain = 9 - mmForm.referenceImagePaths.length
+  if (remain <= 0) {
+    ElMessage.warning('参考图标识已达上限 9 个')
+    return
+  }
+  const toAdd = []
+  for (const p of lines) {
+    if (toAdd.length >= remain) break
+    if (mmForm.referenceImagePaths.includes(p) || toAdd.includes(p)) continue
+    if (await probeImagePath(p)) toAdd.push(p)
+    else ElMessage.warning('跳过无效标识：' + p)
+  }
+  if (toAdd.length === 0) {
+    ElMessage.error('没有可用的图片标识')
+    return
+  }
+  mmForm.referenceImagePaths.push(...toAdd)
+  mmImagePathInput.value = ''
+  ElMessage.success(`已添加 ${toAdd.length} 个参考图标识`)
+}
+
+function removeMmImagePath(idx) {
+  mmForm.referenceImagePaths.splice(idx, 1)
+}
+
+function onPreviewError(e) {
+  if (e && e.target) e.target.style.opacity = '0.3'
 }
 
 // 通用：上传一个或多个本地文件，返回 file_id 数组（用于后续作为 URL 入参）
@@ -583,8 +743,8 @@ async function handleImage2Video() {
     ElMessage.warning('请输入视频描述')
     return
   }
-  if (i2vForm.firstFrameFiles.length === 0 && i2vForm.lastFrameFiles.length === 0) {
-    ElMessage.warning('图生视频至少需要上传首帧或尾帧图片')
+  if (!hasI2vMedia()) {
+    ElMessage.warning('图生视频至少需要提供首帧或尾帧图片（上传文件或粘贴图片标识）')
     return
   }
 
@@ -599,11 +759,16 @@ async function handleImage2Video() {
       aigcWatermark: i2vForm.aigcWatermark,
     }
 
-    if (i2vForm.firstFrameFiles.length > 0) {
+    // 图片标识优先于上传文件
+    if (i2vForm.firstFramePath) {
+      payload.firstFrame = i2vForm.firstFramePath
+    } else if (i2vForm.firstFrameFiles.length > 0) {
       const ids = await uploadFiles([pickFirstRaw(i2vForm.firstFrameFiles)])
       payload.firstFrame = ids[0]
     }
-    if (i2vForm.lastFrameFiles.length > 0) {
+    if (i2vForm.lastFramePath) {
+      payload.lastFrame = i2vForm.lastFramePath
+    } else if (i2vForm.lastFrameFiles.length > 0) {
       const ids = await uploadFiles([pickFirstRaw(i2vForm.lastFrameFiles)])
       payload.lastFrame = ids[0]
     }
@@ -630,10 +795,11 @@ async function handleMultimodal() {
     return
   }
   const imgCount = mmForm.referenceImageFiles.length
+  const pathCount = mmForm.referenceImagePaths.length
   const vidCount = mmForm.referenceVideoFiles.length
   const audCount = mmForm.referenceAudioFiles.length
-  if (imgCount + vidCount + audCount === 0) {
-    ElMessage.warning('多模态参考至少需要上传一个参考素材（图/视频/音频）')
+  if (imgCount + pathCount + vidCount + audCount === 0) {
+    ElMessage.warning('多模态参考至少需要一个参考素材（图/视频/音频，可直接粘贴图片标识）')
     return
   }
 
@@ -649,11 +815,15 @@ async function handleMultimodal() {
       aigcWatermark: mmForm.aigcWatermark,
     }
 
+    // 图片标识与上传文件可同时使用：标识在前，上传文件在后
+    const imgPaths = mmForm.referenceImagePaths.slice()
     if (imgCount > 0) {
-      payload.referenceImages = await uploadFiles(
+      const ids = await uploadFiles(
         mmForm.referenceImageFiles.map((f) => f.raw || f),
       )
+      imgPaths.push(...ids)
     }
+    if (imgPaths.length > 0) payload.referenceImages = imgPaths
     if (vidCount > 0) {
       payload.referenceVideos = await uploadFiles(
         mmForm.referenceVideoFiles.map((f) => f.raw || f),
@@ -811,5 +981,43 @@ async function handleCancelTask() {
 }
 .error-alert {
   margin-top: 16px;
+}
+.path-input-block {
+  margin-top: 10px;
+}
+.path-input-block .el-button + .el-button {
+  margin-left: 8px;
+}
+.path-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: #f0f9eb;
+  border-radius: 4px;
+}
+.path-preview .preview-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #e4e7ed;
+  flex-shrink: 0;
+}
+.path-preview .path-preview-label {
+  flex: 1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: #606266;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.path-preview-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 </style>
