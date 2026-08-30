@@ -350,6 +350,9 @@ export async function textToSpeech(params) {
     );
   }
 
+  const subtitleRaw = resp?.data?.subtitle_file ?? resp?.subtitle_file ?? null;
+  const subtitle = (subtitleEnable && typeof subtitleRaw === "string" && subtitleRaw.length > 0) ? subtitleRaw : null;
+
   const outputDir = "output/voice";
 
   if (outputFormat === "url") {
@@ -357,7 +360,7 @@ export async function textToSpeech(params) {
     if (outputPath) {
       fs.writeFileSync(outputPath, audioUrl);
     }
-    return { audioUrl };
+    return subtitle ? { audioUrl, subtitle } : { audioUrl };
   } else {
     if (!resp.data || !resp.data.audio) {
       throw new Error(`API 返回格式异常: ${JSON.stringify(resp)}`);
@@ -372,7 +375,9 @@ export async function textToSpeech(params) {
     fs.writeFileSync(savePath, audioBuffer);
     console.log(`音频已保存: ${savePath} (${(audioBuffer.length / 1024).toFixed(1)} KB)`);
 
-    return { audioHex, audioSize: audioBuffer.length, filePath: savePath };
+    const result = { audioHex, audioSize: audioBuffer.length, filePath: savePath };
+    if (subtitle) result.subtitle = subtitle;
+    return result;
   }
 }
 

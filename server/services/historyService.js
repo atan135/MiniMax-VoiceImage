@@ -4,10 +4,14 @@ import { apiLogger } from "../utils/logger.js";
 /**
  * 添加生成记录
  */
-export async function addRecord(type, prompt, params, filePath, fileSize, status, errorMsg = null) {
+export async function addRecord(type, prompt, params, filePath, fileSize, status, errorMsg = null, subtitle = null) {
+  if (subtitle !== null) {
+    if (typeof subtitle !== "string") throw new Error("subtitle 必须是字符串");
+    if (Buffer.byteLength(subtitle, "utf8") > 1024 * 1024) throw new Error("字幕内容超过 1MB 上限");
+  }
   const sql = `
-    INSERT INTO generation_history (type, prompt, params, file_path, file_size, status, error_msg)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO generation_history (type, prompt, params, file_path, file_size, status, error_msg, subtitle)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
   const paramsJson = JSON.stringify(params);
 
@@ -19,7 +23,8 @@ export async function addRecord(type, prompt, params, filePath, fileSize, status
       filePath || null,
       Number(fileSize) || 0,
       String(status),
-      errorMsg || null
+      errorMsg || null,
+      subtitle || null
     ]);
     apiLogger.info(`[History] 添加记录成功 | ID: ${result.insertId} | Type: ${type}`);
     return result.insertId;

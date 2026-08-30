@@ -56,6 +56,7 @@ async function initDatabase() {
       file_size INT DEFAULT 0,
       status ENUM('success', 'failed') NOT NULL DEFAULT 'success',
       error_msg TEXT,
+      subtitle MEDIUMTEXT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       INDEX idx_type (type),
       INDEX idx_created_at (created_at)
@@ -68,6 +69,9 @@ async function initDatabase() {
     MODIFY COLUMN type ENUM(${buildEnumSQL()}) NOT NULL,
     MODIFY COLUMN file_path MEDIUMTEXT
   `;
+
+  // 阶段 4：单独 ALTER 添加 subtitle 列（避免与已有列冲突，独立 try/catch）
+  const alterSubtitleSQL = `ALTER TABLE \`${dbName}\`.generation_history ADD COLUMN subtitle MEDIUMTEXT NULL`;
 
   try {
     // 创建数据库
@@ -92,6 +96,14 @@ async function initDatabase() {
     } catch (error) {
       // 如果列已经是最新或出错，忽略（表可能不存在或已是最新）
       appLogger.info("表 type 列更新检查完成");
+    }
+
+    // 阶段 4：为已存在的 generation_history 表添加 subtitle 列（重复添加会被吞掉）
+    try {
+      await conn.query(alterSubtitleSQL);
+      appLogger.info("数据库表 generation_history.subtitle 列已添加");
+    } catch (error) {
+      appLogger.info("表 subtitle 列更新检查完成");
     }
     conn.release();
 

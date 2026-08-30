@@ -4,7 +4,7 @@ import path from "path";
 import fs from "fs";
 import { textToSpeech, getAllVoices, deleteVoice, designVoice, uploadAudioFile, voiceClone, BITRATE_LIST, EMOTION_LIST, LANGUAGE_BOOST_LIST, SAMPLE_RATE_LIST, AUDIO_FORMAT_LIST } from "../services/voiceService.js";
 import { refreshVoicesFromAPI, getVoicesFromDB, removeVoice } from "../services/voiceInventoryService.js";
-import { addRecord } from "../services/historyService.js";
+import { addRecord, getRecordById } from "../services/historyService.js";
 import { apiLogger, maskSensitiveData } from "../utils/logger.js";
 
 // Configure multer for file uploads
@@ -129,6 +129,29 @@ router.post("/clone", async (req, res) => {
   }
 });
 
+// 查询字幕（按历史记录 ID）
+router.get("/subtitle/:id", async (req, res) => {
+  const { id } = req.params;
+  apiLogger.info(`[Voice] 查询字幕: id=${id}`);
+  try {
+    const record = await getRecordById(id);
+    if (!record) return res.status(404).json({ success: false, error: "记录不存在" });
+    if (record.type !== "voice") return res.status(404).json({ success: false, error: "记录类型不是 voice" });
+    if (!record.subtitle) return res.status(404).json({ success: false, error: "字幕内容为空" });
+
+    const content = String(record.subtitle);
+    let contentType = "text/plain; charset=utf-8";
+    if (content.startsWith("{")) contentType = "application/json; charset=utf-8";
+    else if (content.startsWith("WEBVTT")) contentType = "text/vtt; charset=utf-8";
+
+    res.setHeader("Content-Type", contentType);
+    res.send(content);
+  } catch (error) {
+    apiLogger.error(`[Voice] 查询字幕失败: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 删除音色
 router.delete("/:voiceId", async (req, res) => {
   const { voiceId } = req.params;
@@ -163,14 +186,17 @@ router.post("/", async (req, res) => {
       maskedBody,
       result.filePath,
       result.audioSize,
-      "success"
+      "success",
+      null,
+      result.subtitle || null
     );
 
     // 返回结果脱敏（去掉hex数据）
     const logResult = {
       audioSize: result.audioSize,
       filePath: result.filePath,
-      hasAudioHex: !!result.audioHex
+      hasAudioHex: !!result.audioHex,
+      hasSubtitle: !!result.subtitle
     };
     apiLogger.info(`[Voice] 成功 | 耗时: ${duration}ms | 返回: ${JSON.stringify(logResult)}`);
 
