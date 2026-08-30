@@ -7,7 +7,9 @@
     "dev": "node server/index.js",
     "dev:client": "cd client && npm install && npm run dev",
     "install:all": "npm install && cd client && npm install",
-    "batch": "node scripts/batchGenerate.js"
+    "batch": "node scripts/batchGenerate.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "axios": "^1.7.9",
@@ -18,5 +20,10 @@
     "log4js": "^6.9.1",
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.20.0"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.0",
+    "supertest": "^7.0.0",
+    "nock": "^14.0.0"
   }
 }
