@@ -3,7 +3,6 @@
     <el-menu mode="horizontal" :default-active="$route.path" router>
       <el-menu-item index="/voice">语音生成</el-menu-item>
       <el-menu-item index="/image">图片生成</el-menu-item>
-      <el-menu-item index="/image/i2i">图生图</el-menu-item>
       <el-menu-item index="/video">视频生成</el-menu-item>
       <el-menu-item index="/video_old">视频生成（旧版）</el-menu-item>
       <el-menu-item index="/music">音乐生成</el-menu-item>
