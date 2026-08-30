@@ -46,13 +46,23 @@ function isLocalPath(s) {
   return typeof s === "string" && s.length > 0 && !/^https?:\/\//i.test(s);
 }
 
+// 把前端可能传来的各种形态（带前导 /output/、Windows 反斜杠、首尾空白）
+// 统一转成后端 fs.existsSync 能识别的相对路径
+function normalizeLocalPath(s) {
+  if (typeof s !== "string") return s;
+  let p = s.trim().replace(/\\/g, "/");
+  if (p.startsWith("/output/")) p = "output/" + p.slice("/output/".length);
+  while (p.startsWith("/")) p = p.slice(1);
+  return p;
+}
+
 // POST / 与 POST /enhance-prompt 共用：本地路径媒体先上传到 MiniMax 拿 file_id
 async function resolveMediaParams(params) {
   const out = { ...params };
 
   for (const key of ["firstFrame", "lastFrame"]) {
     if (isLocalPath(out[key])) {
-      const uploaded = await uploadFileToMiniMax(out[key], "video_reference");
+      const uploaded = await uploadFileToMiniMax(normalizeLocalPath(out[key]), "video_reference");
       out[key] = uploaded.fileId;
     }
   }
@@ -62,7 +72,7 @@ async function resolveMediaParams(params) {
       out[key] = await Promise.all(
         out[key].map(async (item) => {
           if (isLocalPath(item)) {
-            const uploaded = await uploadFileToMiniMax(item, "video_reference");
+            const uploaded = await uploadFileToMiniMax(normalizeLocalPath(item), "video_reference");
             return uploaded.fileId;
           }
           return item;
