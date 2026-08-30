@@ -43,11 +43,9 @@
           <div v-else-if="row.status === 'success' && row.type === 'lyrics'" class="lyrics-icon">
             📝
           </div>
-          <div v-else-if="row.status === 'success' && row.type === 'video'" class="video-icon">
-            🎬
-          </div>
-          <div v-else-if="row.status === 'success' && row.type === 'video_old'" class="video-icon">
-            🎬
+          <div v-else-if="row.status === 'success' && (row.type === 'video' || row.type === 'video_old')" class="video-icon" @click.stop="openVideoLightbox(row)">
+            <span class="emoji">🎬</span>
+            <span class="video-hint">点击预览</span>
           </div>
           <span v-else>-</span>
         </template>
@@ -133,7 +131,10 @@
           <div v-else-if="selectedRecord.type === 'lyrics'" class="lyrics-preview">
             <pre class="lyrics-content">{{ selectedRecord.file_path }}</pre>
           </div>
-          <div v-else-if="selectedRecord.type === 'video'" class="video-preview">
+          <div v-else-if="selectedRecord.type === 'video' || selectedRecord.type === 'video_old'" class="video-preview">
+            <p v-if="selectedRecord.file_path" class="file-path-text">
+              <code>{{ selectedRecord.file_path }}</code>
+            </p>
             <video v-if="selectedRecord.file_path" :src="getFileUrl(selectedRecord.file_path)" controls style="max-width: 100%; max-height: 480px;" />
           </div>
           <div v-else class="file-path">{{ selectedRecord.file_path }}</div>
@@ -154,6 +155,14 @@
           <el-button @click="nextImage" :disabled="lightboxCurrentIndex >= lightboxImageList.length - 1">下一张</el-button>
         </div>
         <img :src="lightboxSrc" alt="full size" class="lightbox-image" />
+      </div>
+    </el-dialog>
+
+    <!-- 视频预览弹窗 -->
+    <el-dialog v-model="videoLightboxVisible" width="80%" top="5vh" :show-close="true" class="video-dialog" :modal-append-to-body="true">
+      <div class="video-lightbox-content">
+        <video v-if="videoLightboxSrc" :src="videoLightboxSrc" controls autoplay class="video-player" />
+        <p v-if="videoLightboxMeta" class="video-meta">{{ videoLightboxMeta }}</p>
       </div>
     </el-dialog>
   </div>
@@ -181,6 +190,9 @@ const lightboxVisible = ref(false)
 const lightboxSrc = ref('')
 const lightboxImageList = ref([])
 const lightboxCurrentIndex = ref(0)
+const videoLightboxVisible = ref(false)
+const videoLightboxSrc = ref('')
+const videoLightboxMeta = ref('')
 
 const loadData = async () => {
   loading.value = true
@@ -284,6 +296,13 @@ const copyImagePath = async (filePath) => {
   if (!filePath) return
   const ok = await copyToClipboard(filePath)
   ElMessage[ok ? 'success' : 'error'](ok ? '图片标识已复制' : '复制失败，请手动复制')
+}
+
+const openVideoLightbox = (row) => {
+  if (!row || !row.file_path) return
+  videoLightboxSrc.value = getFileUrl(row.file_path)
+  videoLightboxMeta.value = `${getTypeLabel(row.type)} #${row.id} · ${formatDate(row.created_at)}`
+  videoLightboxVisible.value = true
 }
 
 async function copyToClipboard(text) {
@@ -407,6 +426,51 @@ onMounted(() => {
 .lyrics-icon {
   font-size: 24px;
   text-align: center;
+}
+.video-icon {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transition: transform 0.2s;
+}
+.video-icon:hover {
+  transform: scale(1.15);
+}
+.video-icon .emoji {
+  font-size: 24px;
+}
+.video-icon .video-hint {
+  font-size: 11px;
+  color: #909399;
+}
+.video-lightbox-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.video-player {
+  width: 100%;
+  max-height: 70vh;
+  background: #000;
+  border-radius: 4px;
+}
+.file-path-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: #606266;
+  background: #f5f7fa;
+  padding: 6px 10px;
+  border-radius: 4px;
+  margin: 0 0 10px 0;
+  word-break: break-all;
+}
+.video-meta {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 13px;
+  color: #606266;
 }
 .pagination {
   margin-top: 20px;
