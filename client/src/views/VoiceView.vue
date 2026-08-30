@@ -112,6 +112,7 @@
         <el-checkbox v-model="form.latexRead">LaTeX 公式朗读</el-checkbox>
         <el-checkbox v-model="form.englishNormalization">英文缩写展开</el-checkbox>
         <el-checkbox v-model="form.aigcWatermark">AIGC 水印</el-checkbox>
+        <el-checkbox v-model="form.subtitleEnable">生成字幕</el-checkbox>
       </el-form-item>
 
       <el-form-item>
@@ -123,6 +124,11 @@
       <h3>生成结果</h3>
       <p>音频大小: {{ (result.audioSize / 1024).toFixed(1) }} KB</p>
       <audio v-if="audioUrl" :src="audioUrl" controls />
+      <div v-if="result.subtitle" class="subtitle-section">
+        <h4>字幕</h4>
+        <pre class="subtitle-content">{{ result.subtitle }}</pre>
+        <el-button size="small" type="primary" @click="downloadSubtitle">下载字幕</el-button>
+      </div>
     </div>
 
     <el-alert v-if="error" :title="error" type="error" show-icon />
@@ -150,7 +156,8 @@ const form = reactive({
   textNormalization: false,
   latexRead: false,
   englishNormalization: false,
-  aigcWatermark: false
+  aigcWatermark: false,
+  subtitleEnable: false
 })
 
 const voiceTab = ref('built-in')
@@ -239,6 +246,20 @@ onUnmounted(() => {
   }
 })
 
+const downloadSubtitle = () => {
+  if (!result.value?.subtitle) return
+  const blob = new Blob([result.value.subtitle], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  const ts = Date.now()
+  a.download = `${form.voiceId || 'voice'}_${ts}.txt`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
 const handleGenerate = async () => {
   if (!form.text) {
     ElMessage.warning('请输入文本内容')
@@ -268,6 +289,7 @@ const handleGenerate = async () => {
       latexRead: form.latexRead,
       englishNormalization: form.englishNormalization,
       aigcWatermark: form.aigcWatermark,
+      subtitleEnable: form.subtitleEnable,
       outputFormat: 'hex'
     })
     if (res.data.success) {

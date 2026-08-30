@@ -116,6 +116,12 @@
           <label>文件:</label>
           <div v-if="selectedRecord.type === 'voice'" class="audio-preview">
             <audio v-if="audioSrc" :src="audioSrc" controls />
+            <div class="subtitle-history">
+              <el-button v-if="!subtitleContent && !subtitleLoading" size="small" type="primary" @click="loadSubtitle(selectedRecord.id)">加载字幕</el-button>
+              <span v-else-if="subtitleLoading">加载中...</span>
+              <pre v-else-if="subtitleContent" class="subtitle-content">{{ subtitleContent }}</pre>
+              <span v-else-if="!subtitleContent && !subtitleLoading" class="no-subtitle">无字幕</span>
+            </div>
           </div>
           <div v-else-if="selectedRecord.type === 'image'" class="image-preview">
             <div class="image-grid">
@@ -169,8 +175,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { getHistory, getHistoryById } from '../api'
+import { ref, watch, onMounted } from 'vue'
+import { getHistory, getHistoryById, getVoiceSubtitle } from '../api'
 import { ElMessage } from 'element-plus'
 
 const filterType = ref('')
@@ -193,6 +199,25 @@ const lightboxCurrentIndex = ref(0)
 const videoLightboxVisible = ref(false)
 const videoLightboxSrc = ref('')
 const videoLightboxMeta = ref('')
+const subtitleContent = ref('')
+const subtitleLoading = ref(false)
+
+const loadSubtitle = async (id) => {
+  subtitleLoading.value = true
+  try {
+    const res = await getVoiceSubtitle(id)
+    subtitleContent.value = res.data
+  } catch (e) {
+    ElMessage.warning(e.response?.data?.error || '加载字幕失败')
+    subtitleContent.value = ''
+  } finally {
+    subtitleLoading.value = false
+  }
+}
+
+watch(() => dialogVisible.value, (newVal) => {
+  if (!newVal) subtitleContent.value = ''
+})
 
 const loadData = async () => {
   loading.value = true
@@ -263,6 +288,7 @@ const handleRowClick = async (row) => {
     if (res.data.success) {
       selectedRecord.value = res.data.data
       dialogTitle.value = `记录详情 #${row.id}`
+      subtitleContent.value = ''
       audioSrc.value = ''
       imageSrc.value = ''
       imageSrcList.value = []

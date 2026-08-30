@@ -10,6 +10,7 @@ export const designVoice = (data) => api.post('/voice/design', data)
 export const uploadVoiceFile = (formData) => api.post('/voice/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
 export const cloneVoice = (data) => api.post('/voice/clone', data)
 export const generateVoice = (data) => api.post('/voice', data)
+export const getVoiceSubtitle = (id) => api.get(`/voice/subtitle/${id}`, { responseType: 'text' })
 export const deleteVoice = (voiceId, voiceType) => api.delete(`/voice/${voiceId}`, { data: { voice_type: voiceType } })
 
 export const getImageOptions = () => api.get('/image/options')
