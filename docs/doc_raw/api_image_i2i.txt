@@ -1,0 +1,969 @@
+{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://platform.minimax.cn/#organization","name":"MiniMax 开放平台文档中心","url":"https://platform.minimax.cn","logo":{"@type":"ImageObject","url":"https://mintcdn.com/minimax-zh/1UjvBcdoC6r0UeyA/logo/light.svg?fit=max&auto=format&n=1UjvBcdoC6r0UeyA&q=85&s=672d724b639b2d88d0702fae329ea4f8"}},{"@type":"WebSite","@id":"https://platform.minimax.cn/docs#website","name":"MiniMax 开放平台文档中心","url":"https://platform.minimax.cn/docs","publisher":{"@id":"https://platform.minimax.cn/#organization"}},{"@type":"WebPage","@id":"https://platform.minimax.cn/docs/api-reference/image-generation-i2i#webpage","url":"https://platform.minimax.cn/docs/api-reference/image-generation-i2i","name":"图生图","description":"使用本接口，上传图片内容，进行图片生成。","dateModified":"2026-01-28T09:31:18.122Z","isPartOf":{"@id":"https://platform.minimax.cn/docs#website"},"breadcrumb":{"@id":"https://platform.minimax.cn/docs/api-reference/image-generation-i2i#breadcrumb"}},{"@type":"BreadcrumbList","@id":"https://platform.minimax.cn/docs/api-reference/image-generation-i2i#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"图片","item":"https://platform.minimax.cn/docs/api-reference/image-generation-t2i"},{"@type":"ListItem","position":2,"name":"图片生成","item":"https://platform.minimax.cn/docs/api-reference/image-generation-t2i"},{"@type":"ListItem","position":3,"name":"图生图","item":"https://platform.minimax.cn/docs/api-reference/image-generation-i2i"}]},{"@type":["TechArticle","APIReference"],"@id":"https://platform.minimax.cn/docs/api-reference/image-generation-i2i#apireference","headline":"图生图","name":"图生图","description":"使用本接口，上传图片内容，进行图片生成。","url":"https://platform.minimax.cn/docs/api-reference/image-generation-i2i","mainEntityOfPage":{"@id":"https://platform.minimax.cn/docs/api-reference/image-generation-i2i#webpage"},"image":"https://filecdn.minimax.chat/public/58eca777-e31f-448a-9823-e2220e49b426.png","dateModified":"2026-01-28T09:31:18.122Z","publisher":{"@id":"https://platform.minimax.cn/#organization"},"isPartOf":{"@id":"https://platform.minimax.cn/docs#website"}}]}document.documentElement.setAttribute('data-page-mode', "none");.audio-container {
+  height: 50px;
+}
+
+.video-agent-templates {
+  width: 300px;
+  height: 180px;
+  object-fit: cover;
+}
+
+#localization-select-trigger {
+  display: none;
+}
+
+video {
+  border-radius: 12px;
+}
+
+table {
+  overflow-x: auto;
+}
+
+th,
+td {
+  vertical-align: middle !important;
+}
+
+td .video-agent-templates {
+  margin: 0;
+}
+
+#topbar-cta-button > a > span {
+  background-color: #181e25;
+  border-radius: 9999px;
+}
+
+#content-container p {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+}
+
+.method-nav-pill > span {
+  font-weight: 400;
+}
+
+*:has(> .method-pill) {
+  border: none;
+}
+
+.navbar-link > a {
+  font-weight: 400;
+}
+
+.nav-tabs-item {
+  font-weight: 400;
+}
+
+.nav-tabs-item.text-gray-800 {
+  font-weight: 500;
+}
+
+li[id="/token-plan/migration"] [data-nav-tag="NEW"] {
+  background-color: #dcfce7 !important;
+  color: #15803d !important;
+}
+
+.dark li[id="/token-plan/migration"] [data-nav-tag="NEW"] {
+  background-color: rgba(34, 197, 94, 0.18) !important;
+  color: #86efac !important;
+}
+
+*:has(> .navbar-link) > .navbar-link:nth-child(1) > a {
+  color: #181e25;
+  font-weight: 500;
+}
+
+.callout {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.video-package-alert {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px 18px;
+  margin: 12px 0 24px;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  background: #fffbeb;
+}
+
+.video-package-alert__icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 6px;
+  color: #d97706;
+  background: #fef3c7;
+}
+
+.video-package-alert__content {
+  min-width: 0;
+}
+
+.video-package-alert__title {
+  margin-bottom: 4px;
+  color: #b45309;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.video-package-alert__desc {
+  color: #3f3f3f;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.video-package-alert__desc a,
+.video-package-alert__desc a:hover {
+  color: #b45309 !important;
+  font-weight: 600 !important;
+  text-decoration-line: underline !important;
+  text-decoration-color: #b45309 !important;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+  transition: none;
+}
+
+.video-package-alert__desc a:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid #d97706;
+  outline-offset: 2px;
+}
+
+.dark .video-package-alert {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(120, 53, 15, 0.22);
+}
+
+.dark .video-package-alert__icon {
+  color: #fbbf24;
+  background: rgba(180, 83, 9, 0.32);
+}
+
+.dark .video-package-alert__title {
+  color: #fcd34d;
+}
+
+.dark .video-package-alert__desc {
+  color: #e5e7eb;
+}
+
+.dark .video-package-alert__desc a {
+  color: #fbbf24 !important;
+  text-decoration-color: #fbbf24 !important;
+}
+
+@media (max-width: 640px) {
+  .video-package-alert {
+    gap: 10px;
+    padding: 14px;
+  }
+}
+
+.card span {
+  line-height: 1.4rem;
+  margin-top: 8px !important;
+}
+
+#banner a {
+  border-bottom-color: #181e25;
+  color: #fff;
+}
+
+#footer .max-w-36 {
+  max-width: none;
+}
+
+#footer a[href="mailto:api@minimaxi.com"] svg {
+  -webkit-mask-image: url("https://filecdn.minimax.chat/public/45f6ad6e-f42e-45ed-938e-7de67bfd367f.svg") !important;
+  mask-image: url("https://filecdn.minimax.chat/public/45f6ad6e-f42e-45ed-938e-7de67bfd367f.svg") !important;
+}
+
+#footer a[href="https://filecdn.minimax.chat/public/af4294a2-daa8-435a-b8c6-a8f6d5975844.png"]
+{
+  /* 隐藏原文字 */
+  font-size: 0 !important;
+  line-height: 0;
+
+  /* 设置容器 */
+  display: inline-block !important;
+  width: 120px;
+  height: 120px;
+  position: relative;
+}
+
+#footer a[href="https://filecdn.minimax.chat/public/af4294a2-daa8-435a-b8c6-a8f6d5975844.png"]::before
+{
+  content: "";
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-image: url("https://filecdn.minimax.chat/public/af4294a2-daa8-435a-b8c6-a8f6d5975844.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+#footer a[href="https://filecdn.minimax.chat/public/46a6af8f-eeef-462b-b4a3-0da2481ebd43.png"]
+{
+  /* 隐藏原文字 */
+  font-size: 0 !important;
+  line-height: 0;
+
+  /* 设置容器 */
+  display: inline-block !important;
+  width: 120px;
+  height: 120px;
+  position: relative;
+}
+
+#footer a[href="https://filecdn.minimax.chat/public/46a6af8f-eeef-462b-b4a3-0da2481ebd43.png"]::before
+{
+  content: "";
+  display: block;
+  width: 120px;
+  height: 120px;
+  background-image: url("https://filecdn.minimax.chat/public/46a6af8f-eeef-462b-b4a3-0da2481ebd43.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+#footer a[href="https://filecdn.minimax.chat/public/86538a7b-6c69-49e0-947b-422f6ed39123.jpg"]
+{
+  /* 隐藏原文字 */
+  font-size: 0 !important;
+  line-height: 0;
+
+  /* 设置容器 */
+  display: inline-block !important;
+  width: 120px;
+  height: 120px;
+  position: relative;
+}
+
+#footer a[href="https://filecdn.minimax.chat/public/86538a7b-6c69-49e0-947b-422f6ed39123.jpg"]::before
+{
+  content: "";
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-image: url("https://filecdn.minimax.chat/public/86538a7b-6c69-49e0-947b-422f6ed39123.jpg");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* 手机号联系方式 icon 样式 */
+.phone-contact-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  position: relative;
+  color: #6b7280;
+  transition: color 0.2s ease;
+}
+
+.phone-contact-icon:hover {
+  color: #181e25;
+}
+
+.phone-contact-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* 手机号提示框 */
+.phone-contact-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #181e25;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.phone-contact-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #181e25;
+}
+
+.phone-contact-icon:hover .phone-contact-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.phone-contact-tooltip .phone-number {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.phone-contact-tooltip .online-time {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* 复制成功提示 */
+#phone-copy-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  background: #181e25;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+#phone-copy-toast.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+Image Generation
+cURL
+
+curl --request POST \
+  --url https://api.minimaxi.com/v1/image_generation \
+  --header 'Authorization: Bearer &#x3C;token>' \
+  --header 'Content-Type: &#x3C;content-type>' \
+  --data '
+{
+  "model": "image-01",
+  "prompt": "A girl looking into the distance from a library window",
+  "aspect_ratio": "16:9",
+  "subject_reference": [
+    {
+      "type": "character",
+      "image_file": "https://cdn.hailuoai.com/prod/2025-08-12-17/video_cover/1754990600020238321-411603868533342214-cover.jpg"
+    }
+  ],
+  "n": 2
+}
+'
+
+import requests
+
+url = "https://api.minimaxi.com/v1/image_generation"
+
+payload = {
+    "model": "image-01",
+    "prompt": "A girl looking into the distance from a library window",
+    "aspect_ratio": "16:9",
+    "subject_reference": [
+        {
+            "type": "character",
+            "image_file": "https://cdn.hailuoai.com/prod/2025-08-12-17/video_cover/1754990600020238321-411603868533342214-cover.jpg"
+        }
+    ],
+    "n": 2
+}
+headers = {
+    "Content-Type": "<content-type>",
+    "Authorization": "Bearer <token>"
+}
+
+response = requests.post(url, json=payload, headers=headers)
+
+print(response.text)
+
+const options = {
+  method: 'POST',
+  headers: {'Content-Type': '<content-type>', Authorization: 'Bearer <token>'},
+  body: JSON.stringify({
+    model: 'image-01',
+    prompt: 'A girl looking into the distance from a library window',
+    aspect_ratio: '16:9',
+    subject_reference: [
+      {
+        type: 'character',
+        image_file: 'https://cdn.hailuoai.com/prod/2025-08-12-17/video_cover/1754990600020238321-411603868533342214-cover.jpg'
+      }
+    ],
+    n: 2
+  })
+};
+
+fetch('https://api.minimaxi.com/v1/image_generation', options)
+  .then(res => res.json())
+  .then(res => console.log(res))
+  .catch(err => console.error(err));
+
+<?php
+
+$curl = curl_init();
+
+curl_setopt_array($curl, [
+  CURLOPT_URL => "https://api.minimaxi.com/v1/image_generation",
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_ENCODING => "",
+  CURLOPT_MAXREDIRS => 10,
+  CURLOPT_TIMEOUT => 30,
+  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+  CURLOPT_CUSTOMREQUEST => "POST",
+  CURLOPT_POSTFIELDS => json_encode([
+    'model' => 'image-01',
+    'prompt' => 'A girl looking into the distance from a library window',
+    'aspect_ratio' => '16:9',
+    'subject_reference' => [
+        [
+                'type' => 'character',
+                'image_file' => 'https://cdn.hailuoai.com/prod/2025-08-12-17/video_cover/1754990600020238321-411603868533342214-cover.jpg'
+        ]
+    ],
+    'n' => 2
+  ]),
+  CURLOPT_HTTPHEADER => [
+    "Authorization: Bearer <token>",
+    "Content-Type: <content-type>"
+  ],
+]);
+
+$response = curl_exec($curl);
+$err = curl_error($curl);
+
+curl_close($curl);
+
+if ($err) {
+  echo "cURL Error #:" . $err;
+} else {
+  echo $response;
+}
+
+package main
+
+import (
+	"fmt"
+	"strings"
+	"net/http"
+	"io"
+)
+
+func main() {
+
+	url := "https://api.minimaxi.com/v1/image_generation"
+
+	payload := strings.NewReader("{\n  \"model\": \"image-01\",\n  \"prompt\": \"A girl looking into the distance from a library window\",\n  \"aspect_ratio\": \"16:9\",\n  \"subject_reference\": [\n    {\n      \"type\": \"character\",\n      \"image_file\": \"https://cdn.hailuoai.com/prod/2025-08-12-17/video_cover/1754990600020238321-411603868533342214-cover.jpg\"\n    }\n  ],\n  \"n\": 2\n}")
+
+	req, _ := http.NewRequest("POST", url, payload)
+
+	req.Header.Add("Content-Type", "<content-type>")
+	req.Header.Add("Authorization", "Bearer <token>")
+
+	res, _ := http.DefaultClient.Do(req)
+
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	fmt.Println(string(body))
+
+}
+
+HttpResponse<String> response = Unirest.post("https://api.minimaxi.com/v1/image_generation")
+  .header("Content-Type", "<content-type>")
+  .header("Authorization", "Bearer <token>")
+  .body("{\n  \"model\": \"image-01\",\n  \"prompt\": \"A girl looking into the distance from a library window\",\n  \"aspect_ratio\": \"16:9\",\n  \"subject_reference\": [\n    {\n      \"type\": \"character\",\n      \"image_file\": \"https://cdn.hailuoai.com/prod/2025-08-12-17/video_cover/1754990600020238321-411603868533342214-cover.jpg\"\n    }\n  ],\n  \"n\": 2\n}")
+  .asString();
+
+require 'uri'
+require 'net/http'
+
+url = URI("https://api.minimaxi.com/v1/image_generation")
+
+http = Net::HTTP.new(url.host, url.port)
+http.use_ssl = true
+
+request = Net::HTTP::Post.new(url)
+request["Content-Type"] = '<content-type>'
+request["Authorization"] = 'Bearer <token>'
+request.body = "{\n  \"model\": \"image-01\",\n  \"prompt\": \"A girl looking into the distance from a library window\",\n  \"aspect_ratio\": \"16:9\",\n  \"subject_reference\": [\n    {\n      \"type\": \"character\",\n      \"image_file\": \"https://cdn.hailuoai.com/prod/2025-08-12-17/video_cover/1754990600020238321-411603868533342214-cover.jpg\"\n    }\n  ],\n  \"n\": 2\n}"
+
+response = http.request(request)
+puts response.read_body
+
+200
+
+{
+  "id": "03ff3cd0820949eb8a410056b5f21d38",
+  "data": {
+    "image_urls": [
+      "XXX",
+      "XXX",
+      "XXX"
+    ]
+  },
+  "metadata": {
+    "failed_count": "0",
+    "success_count": "3"
+  },
+  "base_resp": {
+    "status_code": 0,
+    "status_msg": "success"
+  }
+}
+
+图片生成
+图生图
+复制页面复制页面
+
+使用本接口，上传图片内容，进行图片生成。
+
+复制页面复制页面
+
+POST
+/
+v1
+/
+image_generation
+
+试一试
+
+Image Generation
+cURL
+
+curl --request POST \
+  --url https://api.minimaxi.com/v1/image_generation \
+  --header 'Authorization: Bearer &#x3C;token>' \
+  --header 'Content-Type: &#x3C;content-type>' \
+  --data '
+{
+  "model": "image-01",
+  "prompt": "A girl looking into the distance from a library window",
+  "aspect_ratio": "16:9",
+  "subject_reference": [
+    {
+      "type": "character",
+      "image_file": "https://cdn.hailuoai.com/prod/2025-08-12-17/video_cover/1754990600020238321-411603868533342214-cover.jpg"
+    }
+  ],
+  "n": 2
+}
+'
+
+import requests
+
+url = "https://api.minimaxi.com/v1/image_generation"
+
+payload = {
+    "model": "image-01",
+    "prompt": "A girl looking into the distance from a library window",
+    "aspect_ratio": "16:9",
+    "subject_reference": [
+        {
+            "type": "character",
+            "image_file": "https://cdn.hailuoai.com/prod/2025-08-12-17/video_cover/1754990600020238321-411603868533342214-cover.jpg"
+        }
+    ],
+    "n": 2
+}
+headers = {
+    "Content-Type": "<content-type>",
+    "Authorization": "Bearer <token>"
+}
+
+response = requests.post(url, json=payload, headers=headers)
+
+print(response.text)
+
+const options = {
+  method: 'POST',
+  headers: {'Content-Type': '<content-type>', Authorization: 'Bearer <token>'},
+  body: JSON.stringify({
+    model: 'image-01',
+    prompt: 'A girl looking into the distance from a library window',
+    aspect_ratio: '16:9',
+    subject_reference: [
+      {
+        type: 'character',
+        image_file: 'https://cdn.hailuoai.com/prod/2025-08-12-17/video_cover/1754990600020238321-411603868533342214-cover.jpg'
+      }
+    ],
+    n: 2
+  })
+};
+
+fetch('https://api.minimaxi.com/v1/image_generation', options)
+  .then(res => res.json())
+  .then(res => console.log(res))
+  .catch(err => console.error(err));
+
+<?php
+
+$curl = curl_init();
+
+curl_setopt_array($curl, [
+  CURLOPT_URL => "https://api.minimaxi.com/v1/image_generation",
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_ENCODING => "",
+  CURLOPT_MAXREDIRS => 10,
+  CURLOPT_TIMEOUT => 30,
+  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+  CURLOPT_CUSTOMREQUEST => "POST",
+  CURLOPT_POSTFIELDS => json_encode([
+    'model' => 'image-01',
+    'prompt' => 'A girl looking into the distance from a library window',
+    'aspect_ratio' => '16:9',
+    'subject_reference' => [
+        [
+                'type' => 'character',
+                'image_file' => 'https://cdn.hailuoai.com/prod/2025-08-12-17/video_cover/1754990600020238321-411603868533342214-cover.jpg'
+        ]
+    ],
+    'n' => 2
+  ]),
+  CURLOPT_HTTPHEADER => [
+    "Authorization: Bearer <token>",
+    "Content-Type: <content-type>"
+  ],
+]);
+
+$response = curl_exec($curl);
+$err = curl_error($curl);
+
+curl_close($curl);
+
+if ($err) {
+  echo "cURL Error #:" . $err;
+} else {
+  echo $response;
+}
+
+package main
+
+import (
+	"fmt"
+	"strings"
+	"net/http"
+	"io"
+)
+
+func main() {
+
+	url := "https://api.minimaxi.com/v1/image_generation"
+
+	payload := strings.NewReader("{\n  \"model\": \"image-01\",\n  \"prompt\": \"A girl looking into the distance from a library window\",\n  \"aspect_ratio\": \"16:9\",\n  \"subject_reference\": [\n    {\n      \"type\": \"character\",\n      \"image_file\": \"https://cdn.hailuoai.com/prod/2025-08-12-17/video_cover/1754990600020238321-411603868533342214-cover.jpg\"\n    }\n  ],\n  \"n\": 2\n}")
+
+	req, _ := http.NewRequest("POST", url, payload)
+
+	req.Header.Add("Content-Type", "<content-type>")
+	req.Header.Add("Authorization", "Bearer <token>")
+
+	res, _ := http.DefaultClient.Do(req)
+
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	fmt.Println(string(body))
+
+}
+
+HttpResponse<String> response = Unirest.post("https://api.minimaxi.com/v1/image_generation")
+  .header("Content-Type", "<content-type>")
+  .header("Authorization", "Bearer <token>")
+  .body("{\n  \"model\": \"image-01\",\n  \"prompt\": \"A girl looking into the distance from a library window\",\n  \"aspect_ratio\": \"16:9\",\n  \"subject_reference\": [\n    {\n      \"type\": \"character\",\n      \"image_file\": \"https://cdn.hailuoai.com/prod/2025-08-12-17/video_cover/1754990600020238321-411603868533342214-cover.jpg\"\n    }\n  ],\n  \"n\": 2\n}")
+  .asString();
+
+require 'uri'
+require 'net/http'
+
+url = URI("https://api.minimaxi.com/v1/image_generation")
+
+http = Net::HTTP.new(url.host, url.port)
+http.use_ssl = true
+
+request = Net::HTTP::Post.new(url)
+request["Content-Type"] = '<content-type>'
+request["Authorization"] = 'Bearer <token>'
+request.body = "{\n  \"model\": \"image-01\",\n  \"prompt\": \"A girl looking into the distance from a library window\",\n  \"aspect_ratio\": \"16:9\",\n  \"subject_reference\": [\n    {\n      \"type\": \"character\",\n      \"image_file\": \"https://cdn.hailuoai.com/prod/2025-08-12-17/video_cover/1754990600020238321-411603868533342214-cover.jpg\"\n    }\n  ],\n  \"n\": 2\n}"
+
+response = http.request(request)
+puts response.read_body
+
+200
+
+{
+  "id": "03ff3cd0820949eb8a410056b5f21d38",
+  "data": {
+    "image_urls": [
+      "XXX",
+      "XXX",
+      "XXX"
+    ]
+  },
+  "metadata": {
+    "failed_count": "0",
+    "success_count": "3"
+  },
+  "base_resp": {
+    "status_code": 0,
+    "status_msg": "success"
+  }
+}
+
+授权
+
+​
+
+Authorization
+string
+header
+必填
+
+HTTP: Bearer Auth
+
+Security Scheme Type: http
+
+HTTP Authorization Scheme: Bearer API_key，用于验证账户信息，可在 账户管理>接口密钥 中查看。
+
+请求头
+
+​
+
+Content-Type
+enum<string>
+默认值:application/json
+必填
+
+请求体的媒介类型，请设置为 application/json
+ 确保请求数据的格式为 JSON.
+
+可用选项: application/json
+
+请求体
+application/json
+
+​
+
+model
+enum<string>
+必填
+
+模型名称。可选值：image-01
+, image-01-live
+.
+
+可用选项: image-01
+,
+image-01-live
+
+​
+
+prompt
+string
+必填
+
+图像的文本描述，最长 1500 字符
+
+​
+
+subject_reference
+object[]
+
+人物主体参考，用于图生图
+
+Show child attributes
+
+​
+
+style
+object
+
+画风设置，仅当 model
+ 为 image-01-live
+ 时生效
+
+Show child attributes
+
+​
+
+aspect_ratio
+enum<string>
+
+图像宽高比，默认为 1:1
+。可选值：
+
+1:1
+ (1024x1024)
+
+16:9
+ (1280x720)
+
+4:3
+ (1152x864)
+
+3:2
+ (1248x832)
+
+2:3
+ (832x1248)
+
+3:4
+ (864x1152)
+
+9:16
+ (720x1280)
+
+21:9
+ (1344x576) (仅适用于image-01
+)
+
+可用选项: 1:1
+,
+16:9
+,
+4:3
+,
+3:2
+,
+2:3
+,
+3:4
+,
+9:16
+,
+21:9
+
+​
+
+width
+integer
+
+生成图片的宽度（像素）。仅当 model 为 image-01
+ 时生效。注意：width
+ 和 height
+ 需同时设置，取值范围[512, 2048]，且必须是 8 的倍数。若与 aspect_ratio
+ 同时设置，则优先使用 aspect_ratio
+
+​
+
+height
+integer
+
+生成图片的高度（像素）。仅当 model 为 image-01
+ 时生效。注意：width
+ 和 height
+ 需同时设置，取值范围[512, 2048]，且必须是 8 的倍数。若与 aspect_ratio
+ 同时设置，则优先使用 aspect_ratio
+
+​
+
+response_format
+enum<string>
+默认值:url
+
+返回图片的形式，默认为 url。可选值：url, base64。
+⚠️ 注意：url 的有效期为 24 小时
+
+可用选项: url
+,
+base64
+
+​
+
+seed
+integer<int64>
+
+随机种子。使用相同的 seed 和参数，可以生成内容相近的图片，用于复现结果。如未提供，算法会对 n 张图单独生成随机种子
+
+​
+
+n
+integer
+默认值:1
+
+单次请求生成的图片数量，取值范围[1, 9]，默认为 1
+
+必填范围: 1 <= x <= 9
+
+​
+
+prompt_optimizer
+boolean
+默认值:false
+
+是否开启 prompt 自动优化，默认为 false
+.
+
+​
+
+aigc_watermark
+boolean
+
+是否在生成的图片中添加水印，默认为 false
+
+响应
+200 - application/json
+
+​
+
+data
+object
+
+Show child attributes
+
+​
+
+metadata
+object
+
+因内容安全检查失败而未返回的图片数量
+
+Show child attributes
+
+​
+
+id
+string
+
+生成任务的 ID，用于后续查询任务状态
+
+​
+
+base_resp
+object
+
+Show child attributes
+
+此页面对您有帮助吗？
+是否
+
+文生图
+音乐生成

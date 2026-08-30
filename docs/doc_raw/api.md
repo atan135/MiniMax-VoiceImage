@@ -287,7 +287,7 @@ GET /api/image/options
 POST /api/image
 ```
 
-**请求体：**
+**文生图（t2i）请求体：**
 
 ```json
 {
@@ -302,21 +302,41 @@ POST /api/image
 }
 ```
 
+**图生图（i2i）请求体：**
+
+```json
+{
+  "model": "image-01",
+  "prompt": "一个女孩在图书馆窗边望向远方",
+  "aspect_ratio": "16:9",
+  "subject_reference": [
+    {
+      "type": "character",
+      "image_file": "https://example.com/reference.jpg"
+    }
+  ],
+  "n": 2
+}
+```
+
 **参数说明：**
 
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| model | string | image-01 | 生成模型 |
+| model | string | image-01 | 生成模型，可选 `image-01` / `image-01-live` |
 | prompt | string | 必填 | 图片描述（最大1500字符） |
 | n | number | 1 | 生成数量（1~9） |
 | aspect_ratio | string | 1:1 | 画布比例 |
-| width | number | - | 宽度（512~2048） |
-| height | number | - | 高度（512~2048） |
-| response_format | string | url | 返回格式 |
-| style | string | - | 风格（仅image-01-live） |
+| width | number | - | 宽度（512~2048，仅 image-01） |
+| height | number | - | 高度（512~2048，仅 image-01） |
+| response_format | string | url | 返回格式（url/base64，url 仅 24h 有效） |
+| style | string | - | 风格（仅 image-01-live） |
 | prompt_optimizer | boolean | false | 提示词优化 |
 | aigc_watermark | boolean | false | 添加水印 |
 | seed | number | - | 随机种子 |
+| subject_reference | object[] | - | **图生图专用**：人物主体参考。子字段 `type`（必填，当前仅 `character`）和 `image_file`（必填，参考图片 URL，公网可访问） |
+
+> 文生图与图生图共用同一接口 `/api/image`，区别仅在是否传入 `subject_reference`。完整字段说明见 `docs/doc_raw/api_image_t2i.md` / `docs/doc_raw/api_image_i2i.md`。
 
 **响应示例：**
 
@@ -340,6 +360,8 @@ POST /api/image
   }
 }
 ```
+
+
 
 ---
 
