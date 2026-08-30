@@ -983,7 +983,12 @@ async function handleCancelTask() {
   margin-top: 16px;
 }
 .path-input-block {
-  margin-top: 10px;
+  margin-top: 4px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: #f5f7fa;
+  border: 1px dashed #c0c4cc;
+  border-radius: 4px;
 }
 .path-input-block .el-button + .el-button {
   margin-left: 8px;
