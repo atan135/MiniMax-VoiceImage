@@ -2,7 +2,7 @@ import express from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { textToSpeech, getAllVoices, deleteVoice, designVoice, uploadAudioFile, voiceClone, BITRATE_LIST, EMOTION_LIST, LANGUAGE_BOOST_LIST, SAMPLE_RATE_LIST, AUDIO_FORMAT_LIST } from "../services/voiceService.js";
+import { textToSpeech, getAllVoices, deleteVoice, designVoice, uploadAudioFile, voiceClone, BITRATE_LIST, EMOTION_LIST, LANGUAGE_BOOST_LIST, SAMPLE_RATE_LIST, AUDIO_FORMAT_LIST, MODEL_LIST } from "../services/voiceService.js";
 import { refreshVoicesFromAPI, getVoicesFromDB, removeVoice } from "../services/voiceInventoryService.js";
 import { addRecord, getRecordById } from "../services/historyService.js";
 import { apiLogger, maskSensitiveData } from "../utils/logger.js";
@@ -43,6 +43,7 @@ router.get("/options", async (req, res) => {
         languageBoostList: LANGUAGE_BOOST_LIST,
         sampleRateList: SAMPLE_RATE_LIST,
         audioFormatList: AUDIO_FORMAT_LIST,
+        modelList: MODEL_LIST,
       }
     });
   } catch (error) {

@@ -18,6 +18,7 @@ const LANGUAGE_BOOST_LIST = [
 ];
 const SAMPLE_RATE_LIST = [16000, 24000, 32000, 48000];
 const AUDIO_FORMAT_LIST = ["mp3", "wav", "flac", "pcm"];
+const MODEL_LIST = ["speech-2.6", "speech-2.6-hd", "speech-02", "speech-02-hd", "speech-2.8-hd"];
 
 // ============================================================
 // 获取所有音色（从API）
@@ -383,5 +384,5 @@ export async function textToSpeech(params) {
 
 export {
   BITRATE_LIST, EMOTION_LIST, LANGUAGE_BOOST_LIST,
-  SAMPLE_RATE_LIST, AUDIO_FORMAT_LIST, DEFAULT_MODEL
+  SAMPLE_RATE_LIST, AUDIO_FORMAT_LIST, MODEL_LIST, DEFAULT_MODEL
 };

@@ -94,6 +94,26 @@
         </el-select>
       </el-form-item>
 
+      <el-form-item label="模型">
+        <el-select v-model="form.model">
+          <el-option v-for="m in options.modelList" :key="m" :label="m" :value="m" />
+        </el-select>
+      </el-form-item>
+
+      <el-form-item label="声道">
+        <el-radio-group v-model="form.channel">
+          <el-radio :label="1">单声道</el-radio>
+          <el-radio :label="2">立体声</el-radio>
+        </el-radio-group>
+      </el-form-item>
+
+      <el-form-item label="高级选项">
+        <el-checkbox v-model="form.textNormalization">英文文本规范化</el-checkbox>
+        <el-checkbox v-model="form.latexRead">LaTeX 公式朗读</el-checkbox>
+        <el-checkbox v-model="form.englishNormalization">英文缩写展开</el-checkbox>
+        <el-checkbox v-model="form.aigcWatermark">AIGC 水印</el-checkbox>
+      </el-form-item>
+
       <el-form-item>
         <el-button type="primary" @click="handleGenerate" :loading="loading">生成语音</el-button>
       </el-form-item>
@@ -124,7 +144,13 @@ const form = reactive({
   bitrate: 128000,
   sampleRate: 32000,
   audioFormat: 'mp3',
-  emotion: 'fluent'
+  emotion: 'fluent',
+  model: 'speech-2.8-hd',
+  channel: 1,
+  textNormalization: false,
+  latexRead: false,
+  englishNormalization: false,
+  aigcWatermark: false
 })
 
 const voiceTab = ref('built-in')
@@ -133,7 +159,8 @@ const options = reactive({
   bitrateList: [64000, 128000, 192000, 256000, 320000],
   emotionList: ['happy', 'sad', 'angry', 'fearful', 'disgusted', 'surprised', 'calm', 'fluent', 'whisper'],
   sampleRateList: [16000, 24000, 32000, 48000],
-  audioFormatList: ['mp3', 'wav', 'flac']
+  audioFormatList: ['mp3', 'wav', 'flac', 'pcm'],
+  modelList: ['speech-2.6', 'speech-2.6-hd', 'speech-02', 'speech-02-hd', 'speech-2.8-hd']
 })
 
 const builtInVoices = ref([])
@@ -193,6 +220,7 @@ onMounted(async () => {
     options.emotionList = data.emotionList || options.emotionList
     options.sampleRateList = data.sampleRateList || options.sampleRateList
     options.audioFormatList = data.audioFormatList || options.audioFormatList
+    options.modelList = data.modelList || options.modelList
 
     // 默认选择第一个音色
     if (builtInVoices.value.length > 0) {
@@ -234,6 +262,12 @@ const handleGenerate = async () => {
       sampleRate: form.sampleRate,
       audioFormat: form.audioFormat,
       emotion: form.emotion,
+      model: form.model,
+      channel: form.channel,
+      textNormalization: form.textNormalization,
+      latexRead: form.latexRead,
+      englishNormalization: form.englishNormalization,
+      aigcWatermark: form.aigcWatermark,
       outputFormat: 'hex'
     })
     if (res.data.success) {
