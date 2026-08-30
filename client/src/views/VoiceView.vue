@@ -116,6 +116,76 @@
         <el-checkbox v-model="form.stream">流式输出</el-checkbox>
       </el-form-item>
 
+      <el-collapse v-model="advancedOpen" class="advanced-collapse">
+        <el-collapse-item title="高级参数（voice_modify / pronunciation_dict / timbre_weights）" name="advanced">
+          <div class="sub-section">
+            <h4>音色调整 (voice_modify)</h4>
+            <el-row :gutter="16">
+              <el-col :span="12">
+                <el-form-item label="音高减">
+                  <el-slider v-model="form.voiceModify.pitch_decrement" :min="-100" :max="100" :step="1" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="音高增">
+                  <el-slider v-model="form.voiceModify.pitch_increment" :min="-100" :max="100" :step="1" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row :gutter="16">
+              <el-col :span="12">
+                <el-form-item label="强度减">
+                  <el-slider v-model="form.voiceModify.intensity_decrement" :min="-100" :max="100" :step="1" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="强度增">
+                  <el-slider v-model="form.voiceModify.intensity_boost" :min="-100" :max="100" :step="1" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row :gutter="16">
+              <el-col :span="12">
+                <el-form-item label="音高调整">
+                  <el-slider v-model="form.voiceModify.voice_modify_pitch" :min="-100" :max="100" :step="1" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="24">
+                <el-form-item label="音效">
+                  <el-select v-model="form.voiceModify.sound_effects" multiple placeholder="选择音效（可多选）">
+                    <el-option v-for="fx in options.soundEffectsList" :key="fx" :label="fx" :value="fx" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+
+          <div class="sub-section">
+            <h4>发音字典 (pronunciation_dict)</h4>
+            <el-radio-group v-model="pronDictMode" @change="handlePronDictModeChange">
+              <el-radio :label="'tone'">整体 tone 字符串</el-radio>
+              <el-radio :label="'phoneme'">音素级别对象</el-radio>
+            </el-radio-group>
+            <el-input
+              v-model="pronDictRaw"
+              type="textarea"
+              :rows="6"
+              placeholder="音素模式示例: {&quot;苹果&quot;:&quot;p ing guo&quot;} / tone 模式示例: hello/(həˈloʊ)/"
+            />
+          </div>
+
+          <div class="sub-section">
+            <h4>音色权重 (timbre_weights)</h4>
+            <div v-for="(item, idx) in form.timbreWeights" :key="idx" class="timbre-row">
+              <el-input v-model="item.voice_id" placeholder="voice_id" style="width: 40%; margin-right: 8px;" />
+              <el-input-number v-model="item.weight" :min="0" :max="100" :step="1" style="margin-right: 8px;" />
+              <el-button size="small" type="danger" @click="form.timbreWeights.splice(idx, 1)">删除</el-button>
+            </div>
+            <el-button size="small" type="primary" @click="addTimbreWeight">添加音色权重</el-button>
+          </div>
+        </el-collapse-item>
+      </el-collapse>
+
       <el-form-item>
         <el-button type="primary" @click="handleGenerate" :loading="loading">生成语音</el-button>
       </el-form-item>
@@ -163,8 +233,19 @@ const form = reactive({
   englishNormalization: false,
   aigcWatermark: false,
   subtitleEnable: false,
-  stream: false
+  stream: false,
+  voiceModify: {
+    pitch_decrement: 0,
+    pitch_increment: 0,
+    intensity_decrement: 0,
+    intensity_boost: 0,
+    voice_modify_pitch: 0,
+    sound_effects: []
+  },
+  timbreWeights: []
 })
+
+const SOUND_EFFECTS_LIST = ["spacious_echo", "lofi_telephone", "robotic", "ethereal", "horror", "auditorium_echo", "vinyl", "arcade", "cinema_whoosh", "choral_echo", "glitch_whoosh", "8d_audio"]
 
 const voiceTab = ref('built-in')
 
@@ -173,8 +254,15 @@ const options = reactive({
   emotionList: ['happy', 'sad', 'angry', 'fearful', 'disgusted', 'surprised', 'calm', 'fluent', 'whisper'],
   sampleRateList: [16000, 24000, 32000, 48000],
   audioFormatList: ['mp3', 'wav', 'flac', 'pcm'],
-  modelList: ['speech-2.6', 'speech-2.6-hd', 'speech-02', 'speech-02-hd', 'speech-2.8-hd']
+  modelList: ['speech-2.6', 'speech-2.6-hd', 'speech-02', 'speech-02-hd', 'speech-2.8-hd'],
+  soundEffectsList: []
 })
+
+options.soundEffectsList = SOUND_EFFECTS_LIST
+
+const advancedOpen = ref([])
+const pronDictMode = ref('tone')
+const pronDictRaw = ref('')
 
 const builtInVoices = ref([])
 const customVoices = ref([])
@@ -254,6 +342,20 @@ onUnmounted(() => {
   }
 })
 
+const addTimbreWeight = () => {
+  form.timbreWeights.push({ voice_id: '', weight: 50 })
+}
+
+const handlePronDictModeChange = () => {
+  if (pronDictMode.value === 'phoneme' && pronDictRaw.value.trim()) {
+    try {
+      JSON.parse(pronDictRaw.value)
+    } catch (e) {
+      ElMessage.warning('当前内容不是合法 JSON，切到音素模式可能解析失败')
+    }
+  }
+}
+
 const downloadSubtitle = () => {
   if (!result.value?.subtitle) return
   const blob = new Blob([result.value.subtitle], { type: 'text/plain;charset=utf-8' })
@@ -316,6 +418,43 @@ const handleGenerate = async () => {
     subtitleEnable: form.subtitleEnable,
     outputFormat: 'hex'
   }
+
+  // voiceModify 仅在非默认值时发送
+  const vm = form.voiceModify
+  const isVmDefault = vm.pitch_decrement === 0 && vm.pitch_increment === 0 && vm.intensity_decrement === 0 && vm.intensity_boost === 0 && vm.voice_modify_pitch === 0 && (!vm.sound_effects || vm.sound_effects.length === 0)
+  const voiceModifyPayload = isVmDefault ? undefined : {
+    pitch_decrement: vm.pitch_decrement,
+    pitch_increment: vm.pitch_increment,
+    intensity_decrement: vm.intensity_decrement,
+    intensity_boost: vm.intensity_boost,
+    voice_modify_pitch: vm.voice_modify_pitch,
+    sound_effects: vm.sound_effects
+  }
+
+  // pronunciation_dict：按 mode 解析；为空则跳过；JSON 失败则中断
+  let pronDictPayload = undefined
+  const pronRaw = pronDictRaw.value.trim()
+  if (pronRaw) {
+    if (pronDictMode.value === 'tone') {
+      pronDictPayload = pronRaw
+    } else {
+      try {
+        pronDictPayload = JSON.parse(pronRaw)
+      } catch (e) {
+        ElMessage.error('发音字典 JSON 格式错误')
+        loading.value = false
+        return
+      }
+    }
+  }
+
+  // timbre_weights：过滤空 voice_id；非空才发送
+  const validTimbre = (form.timbreWeights || []).filter(it => it && it.voice_id && it.voice_id.trim())
+  const timbreWeightsPayload = validTimbre.length > 0 ? validTimbre.map(it => ({ voice_id: it.voice_id.trim(), weight: Number(it.weight) || 0 })) : undefined
+
+  if (voiceModifyPayload) payload.voiceModify = voiceModifyPayload
+  if (pronDictPayload !== undefined) payload.pronunciationDict = pronDictPayload
+  if (timbreWeightsPayload) payload.timbreWeights = timbreWeightsPayload
 
   try {
     if (form.stream) {
