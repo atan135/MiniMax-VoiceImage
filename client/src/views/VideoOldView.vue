@@ -104,6 +104,7 @@
                 clearable
                 size="small"
                 @keyup.enter="applyI2vFirstFramePath"
+                @change="applyI2vFirstFramePath"
               >
                 <template #append>
                   <el-button size="small" @click="applyI2vFirstFramePath">使用</el-button>
@@ -195,6 +196,7 @@
                 clearable
                 size="small"
                 @keyup.enter="applyFl2vFirstFramePath"
+                @change="applyFl2vFirstFramePath"
               >
                 <template #append>
                   <el-button size="small" @click="applyFl2vFirstFramePath">使用</el-button>
@@ -230,6 +232,7 @@
                 clearable
                 size="small"
                 @keyup.enter="applyFl2vLastFramePath"
+                @change="applyFl2vLastFramePath"
               >
                 <template #append>
                   <el-button size="small" @click="applyFl2vLastFramePath">使用</el-button>
@@ -315,6 +318,7 @@
                 clearable
                 size="small"
                 @keyup.enter="applyS2vSubjectPath"
+                @change="applyS2vSubjectPath"
               >
                 <template #append>
                   <el-button size="small" @click="applyS2vSubjectPath">使用</el-button>
@@ -898,8 +902,11 @@ async function handleI2V() {
     ElMessage.warning('请输入视频描述')
     return
   }
+  if (!i2vForm.firstFrameImage && i2vForm.firstFramePath) {
+    await applyImagePathToField(i2vForm.firstFramePath, i2vForm, 'firstFrameImage', '首帧')
+  }
   if (!i2vForm.firstFrameImage) {
-    ElMessage.warning('请上传首帧图片')
+    ElMessage.warning('请上传首帧图片或粘贴图片标识后点击「使用」')
     return
   }
   submitting.value = true
@@ -937,8 +944,14 @@ async function handleFL2V() {
     ElMessage.warning('请输入视频描述')
     return
   }
+  if (!fl2vForm.firstFrameImage && fl2vForm.firstFramePath) {
+    await applyImagePathToField(fl2vForm.firstFramePath, fl2vForm, 'firstFrameImage', '首帧')
+  }
+  if (!fl2vForm.lastFrameImage && fl2vForm.lastFramePath) {
+    await applyImagePathToField(fl2vForm.lastFramePath, fl2vForm, 'lastFrameImage', '尾帧')
+  }
   if (!fl2vForm.firstFrameImage || !fl2vForm.lastFrameImage) {
-    ElMessage.warning('请上传首帧与尾帧图片')
+    ElMessage.warning('请上传首帧与尾帧图片或粘贴图片标识后点击「使用」')
     return
   }
   submitting.value = true
@@ -976,8 +989,11 @@ async function handleS2V() {
     ElMessage.warning('请输入视频描述')
     return
   }
+  if (!s2vForm.subjectImage && s2vForm.subjectPath) {
+    await applyImagePathToField(s2vForm.subjectPath, s2vForm, 'subjectImage', '主体')
+  }
   if (!s2vForm.subjectImage) {
-    ElMessage.warning('请上传人物主体图')
+    ElMessage.warning('请上传人物主体图或粘贴图片标识后点击「使用」')
     return
   }
   submitting.value = true

@@ -84,6 +84,7 @@
                 clearable
                 size="small"
                 @keyup.enter="applyFirstFramePath"
+                @change="applyFirstFramePath"
               >
                 <template #append>
                   <el-button size="small" @click="applyFirstFramePath">使用</el-button>
@@ -119,6 +120,7 @@
                 clearable
                 size="small"
                 @keyup.enter="applyLastFramePath"
+                @change="applyLastFramePath"
               >
                 <template #append>
                   <el-button size="small" @click="applyLastFramePath">使用</el-button>
