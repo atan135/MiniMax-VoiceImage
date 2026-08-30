@@ -176,6 +176,47 @@ router.post("/", async (req, res) => {
 
   apiLogger.info(`[Voice] 请求参数: ${JSON.stringify(maskedBody)}`);
 
+  if (req.body.stream === true) {
+    // 流式模式：SSE 分块写出，不写历史记录（流式成功点是分散的，不易判定）
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    apiLogger.info(`[Voice] 流式模式开启`);
+    try {
+      await textToSpeech(
+        req.body,
+        (chunk) => {
+          try {
+            res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+          } catch (e) {
+            console.warn("SSE 写入失败:", e.message);
+          }
+        },
+        () => {
+          try { res.end(); } catch (e) {}
+        },
+        (err) => {
+          try {
+            res.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`);
+            res.end();
+          } catch (e) {}
+        },
+      );
+    } catch (err) {
+      apiLogger.error(`[Voice] 流式失败 | 耗时: ${Date.now() - startTime}ms | 错误: ${err.message}`);
+      try {
+        if (!res.headersSent) {
+          res.status(500).json({ success: false, error: err.message });
+        } else {
+          res.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`);
+          res.end();
+        }
+      } catch (e) {}
+    }
+    return;
+  }
+
   try {
     const result = await textToSpeech(req.body);
     const duration = Date.now() - startTime;

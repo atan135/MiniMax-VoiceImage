@@ -113,6 +113,7 @@
         <el-checkbox v-model="form.englishNormalization">英文缩写展开</el-checkbox>
         <el-checkbox v-model="form.aigcWatermark">AIGC 水印</el-checkbox>
         <el-checkbox v-model="form.subtitleEnable">生成字幕</el-checkbox>
+        <el-checkbox v-model="form.stream">流式输出</el-checkbox>
       </el-form-item>
 
       <el-form-item>
@@ -120,6 +121,10 @@
       </el-form-item>
     </el-form>
 
+    <div v-if="streaming || streamingChunks.length > 0" class="streaming-status">
+      <span v-if="streaming">正在接收流式数据... 已接收 {{ streamingChunks.length }} 个音频块</span>
+      <span v-else>流式接收完成：共 {{ streamingChunks.length }} 个音频块</span>
+    </div>
     <div v-if="result" class="result">
       <h3>生成结果</h3>
       <p>音频大小: {{ (result.audioSize / 1024).toFixed(1) }} KB</p>
@@ -137,7 +142,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
-import { getVoiceOptions, generateVoice } from '../api'
+import { getVoiceOptions, generateVoice, generateVoiceStream } from '../api'
 import { ElMessage } from 'element-plus'
 
 const form = reactive({
@@ -157,7 +162,8 @@ const form = reactive({
   latexRead: false,
   englishNormalization: false,
   aigcWatermark: false,
-  subtitleEnable: false
+  subtitleEnable: false,
+  stream: false
 })
 
 const voiceTab = ref('built-in')
@@ -174,6 +180,8 @@ const builtInVoices = ref([])
 const customVoices = ref([])
 const languages = ref([])
 const loading = ref(false)
+const streaming = ref(false)
+const streamingChunks = ref([])
 const result = ref(null)
 const audioUrl = ref('')
 const error = ref('')
@@ -260,6 +268,20 @@ const downloadSubtitle = () => {
   URL.revokeObjectURL(url)
 }
 
+const hexToBuffer = (hex) => {
+  const bytes = new Uint8Array(hex.length / 2)
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hex.substr(i * 2, 2), 16)
+  }
+  return bytes
+}
+
+const buildAudioUrl = (hex) => {
+  const buffer = hexToBuffer(hex)
+  const blob = new Blob([buffer], { type: 'audio/mpeg' })
+  return URL.createObjectURL(blob)
+}
+
 const handleGenerate = async () => {
   if (!form.text) {
     ElMessage.warning('请输入文本内容')
@@ -272,47 +294,81 @@ const handleGenerate = async () => {
   loading.value = true
   error.value = ''
   result.value = null
+  audioUrl.value = ''
+  streamingChunks.value = []
+
+  const payload = {
+    text: form.text,
+    voiceId: form.voiceId,
+    speed: form.speed,
+    vol: form.vol,
+    pitch: form.pitch,
+    bitrate: form.bitrate,
+    sampleRate: form.sampleRate,
+    audioFormat: form.audioFormat,
+    emotion: form.emotion,
+    model: form.model,
+    channel: form.channel,
+    textNormalization: form.textNormalization,
+    latexRead: form.latexRead,
+    englishNormalization: form.englishNormalization,
+    aigcWatermark: form.aigcWatermark,
+    subtitleEnable: form.subtitleEnable,
+    outputFormat: 'hex'
+  }
+
   try {
-    const res = await generateVoice({
-      text: form.text,
-      voiceId: form.voiceId,
-      speed: form.speed,
-      vol: form.vol,
-      pitch: form.pitch,
-      bitrate: form.bitrate,
-      sampleRate: form.sampleRate,
-      audioFormat: form.audioFormat,
-      emotion: form.emotion,
-      model: form.model,
-      channel: form.channel,
-      textNormalization: form.textNormalization,
-      latexRead: form.latexRead,
-      englishNormalization: form.englishNormalization,
-      aigcWatermark: form.aigcWatermark,
-      subtitleEnable: form.subtitleEnable,
-      outputFormat: 'hex'
-    })
-    if (res.data.success) {
-      result.value = res.data.data
-      // 将hex转换为可播放的audio URL
-      const hexToBuffer = (hex) => {
-        const bytes = new Uint8Array(hex.length / 2)
-        for (let i = 0; i < bytes.length; i++) {
-          bytes[i] = parseInt(hex.substr(i * 2, 2), 16)
-        }
-        return bytes
+    if (form.stream) {
+      streaming.value = true
+      let hexAcc = ''
+      let subtitle = null
+      let streamError = null
+      try {
+        await generateVoiceStream(payload,
+          (chunk) => {
+            streamingChunks.value.push(chunk)
+            if (chunk && chunk.data && typeof chunk.data.audio === 'string') {
+              hexAcc += chunk.data.audio
+            }
+            if (chunk && chunk.data && typeof chunk.data.subtitle_file === 'string' && chunk.data.subtitle_file.length > 0) {
+              subtitle = chunk.data.subtitle_file
+            }
+          },
+          (err) => {
+            streamError = err
+          },
+        )
+      } catch (e) {
+        streamError = e
       }
-      const buffer = hexToBuffer(result.value.audioHex)
-      const blob = new Blob([buffer], { type: 'audio/mpeg' })
-      audioUrl.value = URL.createObjectURL(blob)
-      ElMessage.success('生成成功')
+      streaming.value = false
+      if (streamError) {
+        error.value = streamError.message || '流式生成失败'
+        ElMessage.error(error.value)
+      } else if (hexAcc.length > 0) {
+        const audioSize = Math.floor(hexAcc.length / 2)
+        result.value = { audioHex: hexAcc, audioSize, subtitle }
+        audioUrl.value = buildAudioUrl(hexAcc)
+        ElMessage.success('流式生成成功')
+      } else {
+        error.value = '流式响应为空'
+        ElMessage.error(error.value)
+      }
     } else {
-      error.value = res.data.error
+      const res = await generateVoice(payload)
+      if (res.data.success) {
+        result.value = res.data.data
+        audioUrl.value = buildAudioUrl(result.value.audioHex)
+        ElMessage.success('生成成功')
+      } else {
+        error.value = res.data.error
+      }
     }
   } catch (e) {
     error.value = e.response?.data?.error || e.message || '生成失败'
   } finally {
     loading.value = false
+    streaming.value = false
   }
 }
 </script>

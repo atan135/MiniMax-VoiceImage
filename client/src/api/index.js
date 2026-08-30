@@ -11,6 +11,59 @@ export const uploadVoiceFile = (formData) => api.post('/voice/upload', formData,
 export const cloneVoice = (data) => api.post('/voice/clone', data)
 export const generateVoice = (data) => api.post('/voice', data)
 export const getVoiceSubtitle = (id) => api.get(`/voice/subtitle/${id}`, { responseType: 'text' })
+export const generateVoiceStream = (data, onChunk, onError) => {
+  return fetch('/api/voice', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }).then(async res => {
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '')
+      let msg = `HTTP ${res.status}`
+      try {
+        const j = JSON.parse(errText)
+        if (j && j.error) msg += `: ${j.error}`
+      } catch (e) {
+        if (errText) msg += `: ${errText.slice(0, 200)}`
+      }
+      throw new Error(msg)
+    }
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const chunks = buffer.split('\n\n')
+      buffer = chunks.pop() || ''
+      for (const c of chunks) {
+        const trimmed = c.trim()
+        if (!trimmed) continue
+        // 处理 event: error 形式的错误事件
+        if (trimmed.startsWith('event: error')) {
+          const dataLine = trimmed.split('\n').find(l => l.startsWith('data:'))
+          if (dataLine) {
+            try {
+              const errObj = JSON.parse(dataLine.replace(/^data:\s*/, ''))
+              throw new Error(errObj.error || '流式错误')
+            } catch (e) {
+              if (e.message && e.message !== '流式错误') throw e
+              throw new Error('流式错误')
+            }
+          }
+          continue
+        }
+        const line = trimmed.replace(/^data:\s*/, '').trim()
+        if (!line) continue
+        try { onChunk(JSON.parse(line)) } catch (e) { console.warn('chunk parse fail', e) }
+      }
+    }
+    if (buffer.trim()) {
+      try { onChunk(JSON.parse(buffer.replace(/^data:\s*/, '').trim())) } catch {}
+    }
+  }).catch(onError)
+}
 export const deleteVoice = (voiceId, voiceType) => api.delete(`/voice/${voiceId}`, { data: { voice_type: voiceType } })
 
 export const getImageOptions = () => api.get('/image/options')

@@ -266,7 +266,7 @@ export async function voiceClone(params) {
 // ============================================================
 // 语音生成主函数
 // ============================================================
-export async function textToSpeech(params) {
+export async function textToSpeech(params, onChunk, onEnd, onError) {
   const {
     text,
     voiceId,
@@ -285,6 +285,8 @@ export async function textToSpeech(params) {
     outputFormat  = "hex",
     channel       = 1,
     aigcWatermark = false,
+    stream        = false,
+    streamOptions = null,
     languageBoost = null,
     pronunciationDict,
     timbreWeights,
@@ -304,7 +306,7 @@ export async function textToSpeech(params) {
   const payload = {
     model,
     text,
-    stream: false,
+    stream,
     audio_setting: {
       bitrate,
       sample_rate: sampleRate,
@@ -330,6 +332,11 @@ export async function textToSpeech(params) {
   if (pronunciationDict) payload.pronunciation_dict = pronunciationDict;
   if (timbreWeights)   payload.timbre_weights   = timbreWeights;
   if (voiceModify)     payload.voice_modify     = voiceModify;
+  if (streamOptions)  payload.stream_options    = streamOptions;
+
+  if (stream) {
+    return await textToSpeechStream(payload, onChunk, onEnd, onError);
+  }
 
   const response = await axios.post(
     "https://api.minimaxi.com/v1/t2a_v2",
@@ -380,6 +387,72 @@ export async function textToSpeech(params) {
     if (subtitle) result.subtitle = subtitle;
     return result;
   }
+}
+
+// ============================================================
+// 语音流式生成（SSE / NDJSON 分块回调）
+// ============================================================
+export async function textToSpeechStream(payload, onChunk, onEnd, onError) {
+  return new Promise((resolve, reject) => {
+    axios.post(
+      "https://api.minimaxi.com/v1/t2a_v2",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 60000,
+        responseType: "stream",
+      },
+    ).then((response) => {
+      let buffer = "";
+      response.data.on("data", (chunk) => {
+        buffer += chunk.toString();
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() || "";
+        for (const part of parts) {
+          const line = part.replace(/^data:\s*/, "").trim();
+          if (!line) continue;
+          try {
+            const obj = JSON.parse(line);
+            if (obj && obj.base_resp && obj.base_resp.status_code !== 0) {
+              const err = new Error(`API 错误: ${obj.base_resp.status_msg} (code: ${obj.base_resp.status_code})`);
+              if (onError) onError(err);
+              response.data.destroy();
+              reject(err);
+              return;
+            }
+            if (onChunk) onChunk(obj);
+          } catch (e) {
+            console.warn("流式 chunk 解析失败:", e.message);
+          }
+        }
+      });
+      response.data.on("end", () => {
+        if (buffer.trim()) {
+          const line = buffer.replace(/^data:\s*/, "").trim();
+          if (line) {
+            try {
+              const obj = JSON.parse(line);
+              if (onChunk) onChunk(obj);
+            } catch (e) {
+              console.warn("流式末尾 chunk 解析失败:", e.message);
+            }
+          }
+        }
+        if (onEnd) onEnd();
+        resolve();
+      });
+      response.data.on("error", (err) => {
+        if (onError) onError(err);
+        reject(err);
+      });
+    }).catch((err) => {
+      if (onError) onError(err);
+      reject(err);
+    });
+  });
 }
 
 export {
