@@ -96,6 +96,24 @@
           </el-form-item>
 
           <el-form-item label="首帧图片">
+            <div class="path-input-block">
+              <el-input
+                v-model="i2vForm.firstFramePath"
+                placeholder="粘贴图片标识（从图片生成结果复制），如 output/image/xxx.png"
+                clearable
+                size="small"
+                @keyup.enter="applyI2vFirstFramePath"
+              >
+                <template #append>
+                  <el-button size="small" @click="applyI2vFirstFramePath">使用</el-button>
+                </template>
+              </el-input>
+              <div v-if="i2vForm.firstFramePath" class="path-preview">
+                <img :src="getFileUrl(i2vForm.firstFramePath)" alt="首帧预览" class="preview-thumb" @error="onPreviewError($event)" />
+                <span class="path-preview-label">{{ i2vForm.firstFramePath }}</span>
+                <el-button size="small" type="danger" link @click="clearI2vFirstFramePath">清除</el-button>
+              </div>
+            </div>
             <el-upload
               list-type="picture-card"
               :limit="1"
@@ -107,7 +125,7 @@
             >
               <el-icon><Plus /></el-icon>
             </el-upload>
-            <span class="field-hint">支持 JPG / PNG / WEBP，单文件 ≤ 20MB</span>
+            <span class="field-hint">或下方直接选择文件：支持 JPG / PNG / WEBP，单文件 ≤ 20MB</span>
           </el-form-item>
 
           <el-row :gutter="20">
@@ -167,6 +185,24 @@
           </el-form-item>
 
           <el-form-item label="首帧图片">
+            <div class="path-input-block">
+              <el-input
+                v-model="fl2vForm.firstFramePath"
+                placeholder="粘贴图片标识（从图片生成结果复制），如 output/image/xxx.png"
+                clearable
+                size="small"
+                @keyup.enter="applyFl2vFirstFramePath"
+              >
+                <template #append>
+                  <el-button size="small" @click="applyFl2vFirstFramePath">使用</el-button>
+                </template>
+              </el-input>
+              <div v-if="fl2vForm.firstFramePath" class="path-preview">
+                <img :src="getFileUrl(fl2vForm.firstFramePath)" alt="首帧预览" class="preview-thumb" @error="onPreviewError($event)" />
+                <span class="path-preview-label">{{ fl2vForm.firstFramePath }}</span>
+                <el-button size="small" type="danger" link @click="clearFl2vFirstFramePath">清除</el-button>
+              </div>
+            </div>
             <el-upload
               list-type="picture-card"
               :limit="1"
@@ -178,9 +214,28 @@
             >
               <el-icon><Plus /></el-icon>
             </el-upload>
+            <span class="field-hint">或下方直接选择文件：首尾帧仅 MiniMax-Hailuo-02 支持，分辨率 768P / 1080P</span>
           </el-form-item>
 
           <el-form-item label="尾帧图片">
+            <div class="path-input-block">
+              <el-input
+                v-model="fl2vForm.lastFramePath"
+                placeholder="粘贴图片标识（可选），如 output/image/xxx.png"
+                clearable
+                size="small"
+                @keyup.enter="applyFl2vLastFramePath"
+              >
+                <template #append>
+                  <el-button size="small" @click="applyFl2vLastFramePath">使用</el-button>
+                </template>
+              </el-input>
+              <div v-if="fl2vForm.lastFramePath" class="path-preview">
+                <img :src="getFileUrl(fl2vForm.lastFramePath)" alt="尾帧预览" class="preview-thumb" @error="onPreviewError($event)" />
+                <span class="path-preview-label">{{ fl2vForm.lastFramePath }}</span>
+                <el-button size="small" type="danger" link @click="clearFl2vLastFramePath">清除</el-button>
+              </div>
+            </div>
             <el-upload
               list-type="picture-card"
               :limit="1"
@@ -192,7 +247,7 @@
             >
               <el-icon><Plus /></el-icon>
             </el-upload>
-            <span class="field-hint">首尾帧仅 MiniMax-Hailuo-02 支持，分辨率 768P / 1080P</span>
+            <span class="field-hint">或下方直接选择文件：首尾帧仅 MiniMax-Hailuo-02 支持</span>
           </el-form-item>
 
           <el-row :gutter="20">
@@ -246,6 +301,24 @@
           </el-form-item>
 
           <el-form-item label="人物主体图">
+            <div class="path-input-block">
+              <el-input
+                v-model="s2vForm.subjectPath"
+                placeholder="粘贴图片标识（从图片生成结果复制），如 output/image/xxx.png"
+                clearable
+                size="small"
+                @keyup.enter="applyS2vSubjectPath"
+              >
+                <template #append>
+                  <el-button size="small" @click="applyS2vSubjectPath">使用</el-button>
+                </template>
+              </el-input>
+              <div v-if="s2vForm.subjectPath" class="path-preview">
+                <img :src="getFileUrl(s2vForm.subjectPath)" alt="主体预览" class="preview-thumb" @error="onPreviewError($event)" />
+                <span class="path-preview-label">{{ s2vForm.subjectPath }}</span>
+                <el-button size="small" type="danger" link @click="clearS2vSubjectPath">清除</el-button>
+              </div>
+            </div>
             <el-upload
               list-type="picture-card"
               :limit="1"
@@ -257,7 +330,7 @@
             >
               <el-icon><Plus /></el-icon>
             </el-upload>
-            <span class="field-hint">S2V-01 仅支持单个人物主体（面部），单文件 ≤ 20MB</span>
+            <span class="field-hint">或下方直接选择文件：S2V-01 仅支持单个人物主体（面部），单文件 ≤ 20MB</span>
           </el-form-item>
 
           <el-row :gutter="20">
@@ -410,7 +483,8 @@ const i2vForm = reactive({
   resolution: '768P',
   duration: 6,
   firstFrameFiles: [],
-  firstFrameImage: '', // Base64 DataURL
+  firstFrameImage: '', // Base64 DataURL（来自上传文件 或 图片标识）
+  firstFramePath: '',
   promptOptimizer: true,
   aigcWatermark: false,
 })
@@ -424,6 +498,8 @@ const fl2vForm = reactive({
   lastFrameFiles: [],
   firstFrameImage: '',
   lastFrameImage: '',
+  firstFramePath: '',
+  lastFramePath: '',
   aigcWatermark: false,
 })
 
@@ -433,7 +509,8 @@ const s2vForm = reactive({
   resolution: '720P',
   duration: 6,
   subjectFiles: [],
-  subjectImage: '', // Base64 DataURL
+  subjectImage: '', // Base64 DataURL（来自上传文件 或 图片标识）
+  subjectPath: '',
   aigcWatermark: false,
 })
 
@@ -480,6 +557,105 @@ function insertCameraCommand(scene, cmd) {
 
 // ===== 图片上传：转 Base64 DataURL =====
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024 // 20MB
+
+// 把图片标识路径转成可访问的 URL（与新版的 getFileUrl 一致）
+function getFileUrl(filePath) {
+  if (!filePath) return ''
+  if (/^https?:\/\//i.test(filePath)) return filePath
+  const normalized = filePath.replace(/\\/g, '/')
+  return normalized.startsWith('/') ? normalized : '/' + normalized
+}
+
+// 规范化图片标识：trim、反斜杠转斜杠、剥 /output/、剥前导 /
+function normalizeImagePath(raw) {
+  if (!raw || typeof raw !== 'string') return ''
+  let p = raw.trim().replace(/\\/g, '/')
+  if (p.startsWith('/output/')) p = 'output/' + p.slice('/output/'.length)
+  while (p.startsWith('/')) p = p.slice(1)
+  return p
+}
+
+// HEAD 探测 /output/<path> 是否存在
+async function probeImagePath(p) {
+  if (!p) return false
+  try {
+    const res = await fetch(getFileUrl(p), { method: 'HEAD' })
+    return res.ok
+  } catch (_) {
+    return false
+  }
+}
+
+// 通过 URL fetch 图，转 Base64 DataURL（V1 后端只接受 URL 或 DataURL）
+async function fetchImageAsDataURL(path) {
+  const res = await fetch(getFileUrl(path))
+  if (!res.ok) throw new Error('图片加载失败 (' + res.status + ')')
+  const blob = await res.blob()
+  if (blob.size > MAX_IMAGE_BYTES) {
+    throw new Error('图片超过 20MB（实际 ' + (blob.size / 1024 / 1024).toFixed(2) + 'MB）')
+  }
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(new Error('读取图片失败'))
+    reader.readAsDataURL(blob)
+  })
+}
+
+// 把图片标识转成 DataURL 并落到指定字段；通用方法
+async function applyImagePathToField(path, form, fieldName, label) {
+  const normalized = normalizeImagePath(path)
+  if (!normalized) {
+    ElMessage.warning('请输入图片标识')
+    return
+  }
+  if (!(await probeImagePath(normalized))) {
+    ElMessage.error('图片标识无效或文件不存在：' + normalized)
+    return
+  }
+  try {
+    const dataURL = await fetchImageAsDataURL(normalized)
+    form[fieldName] = dataURL
+    ElMessage.success(label + '图片标识已应用')
+  } catch (e) {
+    ElMessage.error(e.message || '图片加载失败')
+  }
+}
+
+function clearImagePathField(form, fieldName) {
+  form[fieldName] = ''
+  ElMessage.info('图片标识已清除')
+}
+
+function onPreviewError(e) {
+  if (e && e.target) e.target.style.opacity = '0.3'
+}
+
+// 4 个图片字段的 apply/clear 快捷方法（供模板 @click 调用）
+async function applyI2vFirstFramePath() {
+  await applyImagePathToField(i2vForm.firstFramePath, i2vForm, 'firstFrameImage', '首帧')
+}
+function clearI2vFirstFramePath() {
+  clearImagePathField(i2vForm, 'firstFrameImage')
+}
+async function applyFl2vFirstFramePath() {
+  await applyImagePathToField(fl2vForm.firstFramePath, fl2vForm, 'firstFrameImage', '首帧')
+}
+function clearFl2vFirstFramePath() {
+  clearImagePathField(fl2vForm, 'firstFrameImage')
+}
+async function applyFl2vLastFramePath() {
+  await applyImagePathToField(fl2vForm.lastFramePath, fl2vForm, 'lastFrameImage', '尾帧')
+}
+function clearFl2vLastFramePath() {
+  clearImagePathField(fl2vForm, 'lastFrameImage')
+}
+async function applyS2vSubjectPath() {
+  await applyImagePathToField(s2vForm.subjectPath, s2vForm, 'subjectImage', '主体')
+}
+function clearS2vSubjectPath() {
+  clearImagePathField(s2vForm, 'subjectImage')
+}
 
 function fileToDataURL(file) {
   return new Promise((resolve, reject) => {
@@ -907,5 +1083,37 @@ onMounted(async () => {
 }
 .error-alert {
   margin-top: 16px;
+}
+.path-input-block {
+  margin-bottom: 10px;
+}
+.path-input-block .el-button + .el-button {
+  margin-left: 8px;
+}
+.path-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: #f0f9eb;
+  border-radius: 4px;
+}
+.path-preview .preview-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #e4e7ed;
+  flex-shrink: 0;
+}
+.path-preview .path-preview-label {
+  flex: 1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: #606266;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

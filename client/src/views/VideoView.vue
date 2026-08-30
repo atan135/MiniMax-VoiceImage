@@ -76,21 +76,10 @@
           </el-form-item>
 
           <el-form-item label="首帧图片">
-            <el-upload
-              list-type="picture-card"
-              :limit="1"
-              accept="image/*"
-              :auto-upload="false"
-              :file-list="i2vForm.firstFrameFiles"
-              :on-change="(file) => handleFirstFrameChange(file)"
-              :on-remove="() => handleFirstFrameRemove()"
-            >
-              <el-icon><Plus /></el-icon>
-            </el-upload>
             <div class="path-input-block">
               <el-input
                 v-model="i2vForm.firstFramePath"
-                placeholder="或粘贴图片标识（从图片生成结果复制）"
+                placeholder="粘贴图片标识（从图片生成结果复制），如 output/image/xxx.png"
                 clearable
                 size="small"
                 @keyup.enter="applyFirstFramePath"
@@ -105,25 +94,25 @@
                 <el-button size="small" type="danger" link @click="clearFirstFramePath">清除</el-button>
               </div>
             </div>
-            <span class="field-hint">支持 JPG / PNG / WEBP，单文件 ≤ 20MB；可直接粘贴图片标识跳过上传</span>
-          </el-form-item>
-
-          <el-form-item label="尾帧图片（可选）">
             <el-upload
               list-type="picture-card"
               :limit="1"
               accept="image/*"
               :auto-upload="false"
-              :file-list="i2vForm.lastFrameFiles"
-              :on-change="(file) => handleLastFrameChange(file)"
-              :on-remove="() => handleLastFrameRemove()"
+              :file-list="i2vForm.firstFrameFiles"
+              :on-change="(file) => handleFirstFrameChange(file)"
+              :on-remove="() => handleFirstFrameRemove()"
             >
               <el-icon><Plus /></el-icon>
             </el-upload>
+            <span class="field-hint">或下方直接选择文件：支持 JPG / PNG / WEBP，单文件 ≤ 20MB</span>
+          </el-form-item>
+
+          <el-form-item label="尾帧图片（可选）">
             <div class="path-input-block">
               <el-input
                 v-model="i2vForm.lastFramePath"
-                placeholder="或粘贴图片标识（可选）"
+                placeholder="粘贴图片标识（可选），如 output/image/xxx.png"
                 clearable
                 size="small"
                 @keyup.enter="applyLastFramePath"
@@ -138,7 +127,18 @@
                 <el-button size="small" type="danger" link @click="clearLastFramePath">清除</el-button>
               </div>
             </div>
-            <span class="field-hint">不填则只使用首帧；可直接粘贴图片标识</span>
+            <el-upload
+              list-type="picture-card"
+              :limit="1"
+              accept="image/*"
+              :auto-upload="false"
+              :file-list="i2vForm.lastFrameFiles"
+              :on-change="(file) => handleLastFrameChange(file)"
+              :on-remove="() => handleLastFrameRemove()"
+            >
+              <el-icon><Plus /></el-icon>
+            </el-upload>
+            <span class="field-hint">或下方直接选择文件：不填则只使用首帧</span>
           </el-form-item>
 
           <el-row :gutter="20">
@@ -218,24 +218,12 @@
           </el-row>
 
           <el-form-item label="参考图（≤9）">
-            <el-upload
-              list-type="picture-card"
-              :limit="9"
-              multiple
-              accept="image/*"
-              :auto-upload="false"
-              :file-list="mmForm.referenceImageFiles"
-              :on-change="(file, fileList) => (mmForm.referenceImageFiles = fileList)"
-              :on-remove="(file, fileList) => (mmForm.referenceImageFiles = fileList)"
-            >
-              <el-icon><Plus /></el-icon>
-            </el-upload>
             <div class="path-input-block">
               <el-input
                 v-model="mmImagePathInput"
                 type="textarea"
                 :rows="2"
-                placeholder="或粘贴图片标识（每行一个，最多 9 个）"
+                placeholder="粘贴图片标识（每行一个，最多 9 个），如 output/image/xxx.png"
                 size="small"
               />
               <el-button size="small" type="primary" @click="applyMmImagePaths">加入列表</el-button>
@@ -248,7 +236,19 @@
                 </div>
               </div>
             </div>
-            <span class="field-hint">参考图用于风格/构图参考，单文件 ≤ 20MB；可直接粘贴图片标识</span>
+            <el-upload
+              list-type="picture-card"
+              :limit="9"
+              multiple
+              accept="image/*"
+              :auto-upload="false"
+              :file-list="mmForm.referenceImageFiles"
+              :on-change="(file, fileList) => (mmForm.referenceImageFiles = fileList)"
+              :on-remove="(file, fileList) => (mmForm.referenceImageFiles = fileList)"
+            >
+              <el-icon><Plus /></el-icon>
+            </el-upload>
+            <span class="field-hint">或下方直接选择文件：单文件 ≤ 20MB，标识与上传文件可同时使用</span>
           </el-form-item>
 
           <el-form-item label="参考视频（≤3）">
