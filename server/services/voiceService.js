@@ -279,6 +279,7 @@ export async function textToSpeech(params) {
     emotion       = "fluent",
     textNormalization = false,
     latexRead     = false,
+    englishNormalization = false,
     subtitleEnable = false,
     outputFormat  = "hex",
     channel       = 1,
@@ -295,6 +296,9 @@ export async function textToSpeech(params) {
   if (text.length > 10000) throw new Error("文本长度超过 10000 字符上限");
   if (!voiceId) throw new Error("请指定 voice_id");
   if (!Number.isInteger(channel) || (channel !== 1 && channel !== 2)) throw new Error("channel 必须是 1 或 2");
+  if (typeof textNormalization !== "boolean") throw new Error("textNormalization 必须是布尔值");
+  if (typeof latexRead !== "boolean") throw new Error("latexRead 必须是布尔值");
+  if (typeof englishNormalization !== "boolean") throw new Error("englishNormalization 必须是布尔值");
 
   const payload = {
     model,
@@ -314,6 +318,7 @@ export async function textToSpeech(params) {
       emotion,
       text_normalization: textNormalization,
       latex_read: latexRead,
+      english_normalization: englishNormalization,
     },
     subtitle_enable: subtitleEnable,
     output_format: outputFormat,
