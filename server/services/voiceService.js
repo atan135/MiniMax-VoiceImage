@@ -17,7 +17,7 @@ const LANGUAGE_BOOST_LIST = [
   "Croatian","Filipino","Hungarian","Norwegian","Slovenian","Catalan","Nynorsk","Tamil","Afrikaans",
 ];
 const SAMPLE_RATE_LIST = [16000, 24000, 32000, 48000];
-const AUDIO_FORMAT_LIST = ["mp3", "wav", "flac"];
+const AUDIO_FORMAT_LIST = ["mp3", "wav", "flac", "pcm"];
 
 // ============================================================
 // 获取所有音色（从API）
@@ -281,6 +281,7 @@ export async function textToSpeech(params) {
     latexRead     = false,
     subtitleEnable = false,
     outputFormat  = "hex",
+    channel       = 1,
     aigcWatermark = false,
     languageBoost = null,
     pronunciationDict,
@@ -291,7 +292,9 @@ export async function textToSpeech(params) {
 
   if (!API_KEY) throw new Error("请先在 .env 中配置 API_KEY");
   if (!text)    throw new Error("文本内容不能为空");
+  if (text.length > 10000) throw new Error("文本长度超过 10000 字符上限");
   if (!voiceId) throw new Error("请指定 voice_id");
+  if (!Number.isInteger(channel) || (channel !== 1 && channel !== 2)) throw new Error("channel 必须是 1 或 2");
 
   const payload = {
     model,
@@ -301,7 +304,7 @@ export async function textToSpeech(params) {
       bitrate,
       sample_rate: sampleRate,
       format: audioFormat,
-      channel: 1,
+      channel,
     },
     voice_setting: {
       voice_id: voiceId,
